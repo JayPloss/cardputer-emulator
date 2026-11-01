@@ -36,6 +36,10 @@ Run against two commits that crashed on a real Cardputer, with no change to eith
 
 It also found, in the new firmware before any device saw it: a repeated chapter when one ended, a list answer arriving after its app had closed, a task deleting itself while being restarted, a JSON read timing out on a slow server, and a decoder probe that reported "not an MP3" when it had really run out of memory.
 
+## A pass doesn't prove the device boots
+
+The emulator doesn't run ESP-IDF's startup, its real heap, or any prebuilt library (Wi-Fi, lwIP, mbedTLS, newlib, FATFS, the real M5Unified). Tasks, mutexes, the speaker, SD, NVS and the keyboard reader are all shims of what the firmware calls, and they behave as those shims were written. Code that only ran here has not run. A firmware OS layer that passed every scenario here boot-looped on the first real boot, because libc's `free` bypassed its `--wrap` of `malloc`. That exact failure now fails a check: `tools/check.py` refuses a `--wrap` of the allocator, and an open file's memory goes in by `malloc` and out past any wrapper, so a prefixing allocator crashes here too. The next such failure will be a different one.
+
 ## What it can't tell you
 
 Anything about the radio (range, retries, interference, the real cost of Wi-Fi buffers under traffic); real SD timing; I2S and the sound itself; the display's real speed; true task scheduling; exact stack use (host frames are larger, so high-water marks are indicative); and anything in the prebuilt ESP-IDF libraries. x86-64 pointers make pointer-heavy structures (a `String` is 24 bytes here, 16 there) somewhat larger than on the device, so those allocations err on the safe side. A scenario passing here means it is worth trying on a device, not that it works on one.

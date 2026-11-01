@@ -19,7 +19,7 @@ class WiFiClass {
   void scanDelete() {}
   String SSID();
   String SSID(int);
-  int32_t RSSI(int = 0);
+  int32_t RSSI(int index = 0);
   wifi_auth_mode_t encryptionType(int) { return WIFI_AUTH_WPA2_PSK; }
   uint8_t *BSSID(int = 0);
   int32_t channel(int = 0) { return 6; }
@@ -32,6 +32,7 @@ class WiFiClient : public Client {
   ~WiFiClient() override;
   int connect(IPAddress ip, uint16_t port) override;
   int connect(const char *host, uint16_t port) override;
+  int connectWithin(const char *host, uint16_t port, uint32_t timeoutMs);
   size_t write(uint8_t c) override { return write(&c, 1); }
   size_t write(const uint8_t *buffer, size_t size) override;
   using Print::write;

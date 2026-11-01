@@ -1,0 +1,51 @@
+# A saved place survives a power cut at every step of saving it, and a full card.
+wifi off
+wait-text "HOME" 12000
+press 3
+wait-text "Aaa Test Book" 3000
+press enter
+wait-text "001 Chapter 1" 3000
+press enter
+wait-text "PLAYING" 5000
+wait 4000
+press enter
+wait 1000
+expect-file books/Aaa Test Book/.place "ok"
+power-cut write .place.new
+press enter
+wait 1500
+press enter
+wait 3000
+after-cut
+wifi off
+# Rebooted mid-write: the old place is whole.
+wait-text "HOME" 15000
+expect-file books/Aaa Test Book/.place "ok"
+press 3
+wait-text "Aaa Test Book" 3000
+press enter
+wait-text "001 Chapter 1 >" 3000
+press enter
+wait-text "PLAYING" 5000
+wait 2000
+power-cut rename .place.new
+press enter
+wait 3000
+after-cut
+wifi off
+# Rebooted between remove and rename: only the new copy exists, and it is whole.
+wait-text "HOME" 15000
+press 3
+wait-text "Aaa Test Book" 3000
+press enter
+wait-text "001 Chapter 1 >" 3000
+press enter
+wait-text "PLAYING" 5000
+wait 2000
+card-full on
+press enter
+wait 1000
+expect-file books/Aaa Test Book/.place "ok"
+card-full off
+expect-text "PAUSED"
+report after the cuts

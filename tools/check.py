@@ -10,13 +10,14 @@ import re
 import socket
 import subprocess
 import sys
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
 NEEDS_CARD = {'card-book', 'boot-skip', 'contain', 'stress-apps'}
-ALL = ['boot-online', 'boot-offline', 'boot-skip', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french']
+ALL = ['boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french']
 
 
 def build(tag='current', extra=()):
@@ -49,8 +50,27 @@ def server_reachable():
         return False
 
 
+def runnable(name):
+    if not (ROOT / 'scenarios' / f'{name}.scn').exists():
+        return False
+    if name in NEEDS_CARD and not Path(CARD).is_dir():
+        return False
+    return name != 'stream' or server_reachable()
+
+
+def refuse_allocator_wrap():
+    # A --wrap of malloc or free boot-looped a real device: libc's free bypasses it.
+    ini = Path(os.environ.get('FIRMWARE', Path.home() / 'Work/cardputer-adv-supachat/firmware')) / 'platformio.ini'
+    if ini.exists() and re.search(r'--wrap=(malloc|free|calloc|realloc)', ini.read_text()):
+        print(f'REFUSED: {ini} wraps the allocator, which crashes the real device at boot')
+        return True
+    return False
+
+
 def main():
     names = sys.argv[1:] or ALL
+    if refuse_allocator_wrap():
+        return 1
     build()
     failed = 0
     if 'french' in names:
@@ -63,6 +83,11 @@ def main():
         print(f'french: {"PASS" if ok else "FAIL"}')
         if not ok:
             print('\n'.join(line for line in done.stdout.splitlines() if 'FAILED' in line or 'CRASH' in line or '[screen]' in line))
+    # Scenarios run side by side: they share nothing but the CPU, and the virtual clock waits little.
+    with ThreadPool(6) as pool:
+        finished = {}
+        for name, done in pool.imap_unordered(lambda n: (n, run(n)) if runnable(n) else (n, None), names):
+            finished[name] = done
     for name in names:
         if not (ROOT / 'scenarios' / f'{name}.scn').exists():
             print(f'{name}: no such scenario'); failed += 1; continue
@@ -70,7 +95,7 @@ def main():
             print(f'{name}: SKIPPED, no card at {CARD}'); continue
         if name == 'stream' and not server_reachable():
             print('stream: SKIPPED, no music server reachable'); continue
-        done = run(name)
+        done = finished[name]
         ok = done.returncode == 0
         failed += 0 if ok else 1
         low = re.findall(r'lowest ever (\d+)', done.stdout)

@@ -1,0 +1,13 @@
+# Away: the saved network is in range but won't take a join. The boot ends, the card works.
+nets-clear
+net EMU-LAN emu joinfail
+wait-text "HOME" 30000
+press 3
+wait-text "Aaa Test Book" 1500
+press enter
+wait-text "001 Chapter 1" 4000
+press enter
+wait-text "PLAYING" 8000
+wait 3000
+expect-audio 1
+report join refused

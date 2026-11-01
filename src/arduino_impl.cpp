@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 #include <atomic>
 #include <cerrno>
@@ -171,6 +172,39 @@ size_t Preferences::putBool(const char *key, bool value) { emu::HostScope host; 
 
 // ---- SD ----
 
+namespace {
+std::string cutWhen, cutWhat, cutResume;
+std::atomic<bool> cutArmed{false}, cardIsFull{false};
+void maybeCut(const char *when, const std::string &path, FILE *flushFirst = nullptr) {
+  if (!cutArmed.load()) return;
+  emu::HostScope host;
+  if (cutWhen != when || path.find(cutWhat) == std::string::npos) return;
+  cutArmed = false;
+  printf("[card] power cut at %s of %s\n", when, path.c_str());
+  if (flushFirst) fflush(flushFirst);
+  std::vector<char *> args;
+  for (char **arg = emu::savedArgv; *arg; arg++) {
+    if (!strcmp(*arg, "--resume")) { arg++; continue; }
+    args.push_back(*arg);
+  }
+  static char flag[] = "--resume";
+  args.push_back(flag);
+  args.push_back(const_cast<char *>(cutResume.c_str()));
+  args.push_back(nullptr);
+  fflush(stdout);
+  execv("/proc/self/exe", args.data());
+}
+}  // namespace
+
+namespace emu {
+void armPowerCut(const char *when, const char *what, const char *resumeLine) {
+  HostScope host;
+  cutWhen = when; cutWhat = what; cutResume = resumeLine;
+  cutArmed = true;
+}
+void cardFull(bool on) { cardIsFull = on; }
+}  // namespace emu
+
 struct File::State {
   int refs = 1;
   FILE *file = nullptr;
@@ -205,7 +239,7 @@ void File::close() {
   if (--state_->refs == 0) {
     if (state_->file) fclose(state_->file);
     if (state_->dir) closedir(state_->dir);
-    emu::deviceFree(state_->block);
+    emu::deviceFree(state_->block);  // The direct route, as libc's own free takes.
     delete state_;
   }
   state_ = nullptr;
@@ -238,6 +272,12 @@ size_t File::write(uint8_t c) { return write(&c, 1); }
 size_t File::write(const uint8_t *buffer, size_t size) {
   if (!state_ || !state_->file) return 0;
   emu::HostScope host;
+  if (cardIsFull.load()) return 0;
+  // A power cut lands part way through this write, with the part before it on the card.
+  if (cutArmed.load() && cutWhen == "write" && state_->hostPath.find(cutWhat) != std::string::npos) {
+    fwrite(buffer, 1, size / 2, state_->file);
+    maybeCut("write", state_->hostPath, state_->file);
+  }
   const size_t wrote = fwrite(buffer, 1, size, state_->file);
   charge(state_, wrote * 2);
   return wrote;
@@ -276,7 +316,9 @@ bool SDClass::begin(int, SPIClass &, uint32_t) {
   return stat(emu::options.card, &info) == 0;
 }
 File SDClass::open(const char *path, const char *mode) {
-  void *block = emu::deviceAlloc(model::kOpenFileBytes, "open file");
+  // On the device, libc allocates an open file's memory through malloc, and its free goes straight
+  // to the heap, past any --wrap (a real boot loop came from that). So: in by malloc, out directly.
+  void *block = malloc(model::kOpenFileBytes);
   if (!block) return File();  // FATFS reports out of memory; the caller sees a closed file.
   File result;
   emu::HostScope host;
@@ -302,8 +344,15 @@ File SDClass::open(const char *path, const char *mode) {
   return result;
 }
 bool SDClass::exists(const char *path) { emu::HostScope host; struct stat info{}; return stat(hostPath(path).c_str(), &info) == 0; }
-bool SDClass::remove(const char *path) { emu::HostScope host; return ::remove(hostPath(path).c_str()) == 0; }
-bool SDClass::rename(const char *from, const char *to) { emu::HostScope host; return ::rename(hostPath(from).c_str(), hostPath(to).c_str()) == 0; }
+bool SDClass::remove(const char *path) { emu::HostScope host; maybeCut("remove", path); return ::remove(hostPath(path).c_str()) == 0; }
+bool SDClass::rename(const char *from, const char *to) {
+  emu::HostScope host;
+  maybeCut("rename", from);
+  // FAT refuses to rename onto an existing name.
+  struct stat info{};
+  if (stat(hostPath(to).c_str(), &info) == 0) return false;
+  return ::rename(hostPath(from).c_str(), hostPath(to).c_str()) == 0;
+}
 
 // ---- MD5, for Subsonic's login token ----
 

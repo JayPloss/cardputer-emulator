@@ -51,6 +51,15 @@ struct Options {
 };
 extern Options options;
 extern bool wifiAvailable;
+// The Wi-Fi networks in range. Behaviour says what a joined network lets through:
+// home (everything), nonav (internet, but the music server's address goes nowhere), captive
+// (joins, TLS fails at once), nointernet (joins, everything times out), joinfail (never joins).
+void netAdd(const char *ssid, const char *password, const char *behaviour);
+void netClear();
+// Card faults, for scenarios: a power cut at a chosen file operation restarts the run from
+// the next scenario line, with the card as it stood. A full card fails every write.
+void armPowerCut(const char *when, const char *what, const char *resumeLine);
+void cardFull(bool on);
 extern char **savedArgv;
 
 // The screen, for scenarios and the window.

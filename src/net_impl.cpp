@@ -11,7 +11,9 @@
 
 #include <atomic>
 #include <cstdio>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "device_model.h"
 #include "emu.h"
@@ -19,33 +21,87 @@
 WiFiClass WiFi;
 
 namespace {
-constexpr char kNetwork[] = "EMU-LAN";
+struct SimNet { std::string ssid, password, behaviour; };
+std::mutex netLock;
+std::vector<SimNet> nets = {{"EMU-LAN", "emu", "home"}};
+std::string joinedSsid, joinedBehaviour;
 std::atomic<bool> joined{false};
+std::atomic<int> scansRunning{0};
+
+std::string behaviourNow() {
+  emu::HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  return joinedBehaviour;
+}
+bool plainBlackholed() { emu::HostScope host; const std::string b = behaviourNow(); return b == "nonav" || b == "captive" || b == "nointernet"; }
 }  // namespace
 
+namespace emu {
+void netAdd(const char *ssid, const char *password, const char *behaviour) {
+  HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  nets.push_back({ssid, password, behaviour});
+}
+void netClear() {
+  HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  nets.clear();
+}
+}  // namespace emu
+
 void WiFiClass::disconnect(bool, bool) { joined = false; }
-wl_status_t WiFiClass::begin(const char *, const char *) {
+wl_status_t WiFiClass::begin(const char *ssid, const char *password) {
   emu::sleepMs(1000);
-  joined = emu::wifiAvailable;
-  return status();
+  emu::HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  for (const auto &net : nets) {
+    if (net.ssid == ssid && net.password == password && net.behaviour != "joinfail") {
+      joinedSsid = net.ssid; joinedBehaviour = net.behaviour;
+      joined = emu::wifiAvailable;
+      return joined ? WL_CONNECTED : WL_DISCONNECTED;
+    }
+  }
+  joined = false;
+  return WL_DISCONNECTED;
 }
 wl_status_t WiFiClass::status() {
   if (!emu::wifiAvailable) joined = false;
   return joined ? WL_CONNECTED : WL_DISCONNECTED;
 }
-int WiFiClass::scanNetworks(bool, bool, bool, uint32_t, uint8_t) { emu::sleepMs(2000); return emu::wifiAvailable ? 1 : 0; }
-String WiFiClass::SSID() { return joined ? String(kNetwork) : String(); }
-String WiFiClass::SSID(int) { return String(kNetwork); }
-int32_t WiFiClass::RSSI(int) { return -50; }
+int WiFiClass::scanNetworks(bool, bool, bool, uint32_t, uint8_t) {
+  // As on the device, a second scan while one runs fails at once.
+  if (scansRunning.fetch_add(1) > 0) { scansRunning--; return -1; }
+  emu::sleepMs(2000);
+  scansRunning--;
+  if (!emu::wifiAvailable) return 0;
+  emu::HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  return nets.size();
+}
+String WiFiClass::SSID() {
+  if (!joined) return String();
+  char copy[40];
+  { emu::HostScope host; std::lock_guard<std::mutex> guard(netLock); snprintf(copy, sizeof(copy), "%s", joinedSsid.c_str()); }
+  return String(copy);
+}
+String WiFiClass::SSID(int index) {
+  char copy[40] = "";
+  { emu::HostScope host; std::lock_guard<std::mutex> guard(netLock); if (index >= 0 && index < static_cast<int>(nets.size())) snprintf(copy, sizeof(copy), "%s", nets[index].ssid.c_str()); }
+  return String(copy);
+}
+int32_t WiFiClass::RSSI(int index) { return -50 - index; }
 uint8_t *WiFiClass::BSSID(int) { static uint8_t bssid[6] = {2, 0, 0, 0, 0, 1}; return bssid; }
 
 // ---- sockets ----
 
 WiFiClient::~WiFiClient() { stop(); }
 int WiFiClient::connect(IPAddress ip, uint16_t port) { return connect(ip.toString().c_str(), port); }
-int WiFiClient::connect(const char *host, uint16_t port) {
+int WiFiClient::connect(const char *host, uint16_t port) { return connectWithin(host, port, 5000); }
+int WiFiClient::connectWithin(const char *host, uint16_t port, uint32_t timeoutMs) {
   stop();
   if (WiFi.status() != WL_CONNECTED) return 0;
+  // The address goes nowhere on this network: the attempt uses up its whole timeout.
+  if (plainBlackholed()) { emu::sleepMs(timeoutMs); return 0; }
   socketBlock_ = emu::deviceAlloc(model::kSocketBytes, "socket");
   if (!socketBlock_) return 0;
   emu::HostScope hostScope;
@@ -183,9 +239,15 @@ struct WiFiClientSecure::Exchange {
 };
 
 WiFiClientSecure::~WiFiClientSecure() { stop(); }
-int WiFiClientSecure::connect(const char *, uint16_t) {
+int WiFiClientSecure::connect(const char *host, uint16_t port) { return connect(host, port, 30000); }
+int WiFiClientSecure::connect(const char *, uint16_t, int32_t timeoutMs) {
   stop();
   if (WiFi.status() != WL_CONNECTED) return 0;
+  {
+    const std::string behaviour = behaviourNow();
+    if (behaviour == "nointernet") { emu::sleepMs(timeoutMs); return 0; }
+    if (behaviour == "captive") { emu::sleepMs(400); return 0; }  // The portal answers TLS with plain HTTP.
+  }
   socketBlock_ = emu::deviceAlloc(model::kSocketBytes, "socket");
   context_ = emu::deviceAlloc(model::kTlsContext, "tls context");
   in_ = emu::deviceAlloc(model::kTlsRecordBuffer, "tls in");
@@ -301,7 +363,7 @@ int HTTPClient::sendRequest(const char *method, Stream *body, size_t size) {
 int HTTPClient::sendRequest(const char *method, const String &body) { return run(method, reinterpret_cast<const uint8_t *>(body.c_str()), body.length()); }
 int HTTPClient::run(const char *method, const uint8_t *body, size_t size) {
   if (!client_) return HTTPC_ERROR_CONNECTION_REFUSED;
-  if (!client_->connected() && !client_->connect(host_.c_str(), port_)) return HTTPC_ERROR_CONNECTION_REFUSED;
+  if (!client_->connected() && !client_->connectWithin(host_.c_str(), port_, connectTimeoutMs_)) return HTTPC_ERROR_CONNECTION_REFUSED;
   String request = String(method) + " " + path_ + (http10_ ? " HTTP/1.0\r\n" : " HTTP/1.1\r\n") + "Host: " + host_ + "\r\nUser-Agent: ESP32HTTPClient\r\nConnection: close\r\n" + headers_;
   if (size) request += "Content-Length: " + String(static_cast<unsigned>(size)) + "\r\n";
   request += "\r\n";

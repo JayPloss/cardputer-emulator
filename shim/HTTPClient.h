@@ -15,7 +15,7 @@ class HTTPClient {
   void useHTTP10(bool on = true) { http10_ = on; }
   void setReuse(bool) {}
   void setTimeout(uint32_t ms) { timeoutMs_ = ms; }
-  void setConnectTimeout(int32_t) {}
+  void setConnectTimeout(int32_t ms) { connectTimeoutMs_ = ms; }
   int GET();
   int POST(const String &body);
   int POST(const uint8_t *body, size_t size);
@@ -42,4 +42,5 @@ class HTTPClient {
   uint16_t port_ = 80;
   int size_ = -1;
   uint32_t timeoutMs_ = 5000;
+  uint32_t connectTimeoutMs_ = 5000;
 };

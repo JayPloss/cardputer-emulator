@@ -1,0 +1,35 @@
+# A new network from a fresh boot, through the Networks menu, with the saved one out of range:
+# a wrong password first, then the right one. It stays saved across a reboot.
+nets-clear
+net Cabin secret nonav
+wait-text "HOME" 30000
+report fresh boot, no known network
+press 1
+wait 500
+button
+wait-text "MENU" 3000
+press right
+wait 200
+press down
+press enter
+wait-text "Cabin" 30000
+press enter
+wait-text "TYPE PASSWORD" 3000
+type "wrong"
+press enter
+wait-text "FAILED" 25000
+press del del del del del
+type "secret"
+press enter
+wait-text "SAVED" 25000
+expect-nvs "Cabin"
+expect-nvs "secret"
+report joined
+wait 30000
+report 30 s after joining
+reboot
+wait-text "HOME" 60000
+report rebooted
+press 0
+wait 1000
+expect-text "NO FAULTS"

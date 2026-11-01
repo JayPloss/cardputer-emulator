@@ -116,6 +116,29 @@ int runScenario() {
       }
     } else if (command == "button") { buttonPress(); sleepMs(100); }
     else if (command == "wifi") wifiAvailable = rest == "on";
+    else if (command == "nets-clear") netClear();
+    else if (command == "net") {
+      std::istringstream parts(rest);
+      std::string ssid, password, behaviour;
+      parts >> ssid >> password >> behaviour;
+      netAdd(ssid.c_str(), password.c_str(), behaviour.c_str());
+    } else if (command == "expect-nvs") {
+      std::ifstream target(std::string(options.state) + "/nvs.txt");
+      std::stringstream contents;
+      contents << target.rdbuf();
+      if (contents.str().find(unquote(rest)) == std::string::npos) return fail("NVS doesn't hold " + rest);
+    } else if (command == "power-cut") {
+      // The next write, remove or rename touching this name kills the device, as a power loss would.
+      std::istringstream parts(rest);
+      std::string when, what;
+      parts >> when >> what;
+      char next[16];
+      size_t marker = index + 1;
+      while (marker < lines.size() && lines[marker] != "after-cut") marker++;
+      snprintf(next, sizeof(next), "%d", static_cast<int>(marker + 1));
+      armPowerCut(when.c_str(), what.c_str(), next);
+    } else if (command == "card-full") cardFull(rest == "on");
+    else if (command == "after-cut") return fail("the armed power cut never happened");
     else if (command == "wait-text" || command == "expect-text") {
       std::istringstream parts(rest);
       const auto quote = rest.rfind('"');

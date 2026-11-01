@@ -11,6 +11,7 @@ class WiFiClientSecure : public WiFiClient {
   void setCACert(const char *) {}
   void setHandshakeTimeout(unsigned long) {}
   int connect(const char *host, uint16_t port) override;
+  int connect(const char *host, uint16_t port, int32_t timeoutMs);
   int connect(IPAddress ip, uint16_t port) override { (void)ip; return connect("", port); }
   bool verify(const char *, const char *) { return true; }
   int lastError(char *buffer, size_t size) { if (size) buffer[0] = 0; return 0; }

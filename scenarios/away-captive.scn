@@ -1,0 +1,35 @@
+# Away: captive. BOOKS and MUSIC list the card at once, and the device reaches HOME.
+nets-clear
+net EMU-LAN emu captive
+wait-text "HOME" 50000
+press 3
+wait-text "Aaa Test Book" 1500
+expect-no-text "NO SERVER"
+press enter
+wait-text "001 Chapter 1" 4000
+press enter
+wait-text "PLAYING" 8000
+wait 3000
+expect-audio 1
+button
+wait 500
+button
+wait-text "HOME" 3000
+press 2
+wait-text "ON THE CARD" 2000
+press enter
+wait-text "Aaa Test Album" 2000
+press left
+wait-text "ALBUMS" 2000
+press down
+press enter
+wait-text "Aaa Test Album" 2000
+expect-no-text "OUT OF MEMORY"
+button
+wait 500
+button
+wait-text "HOME" 3000
+press 0
+wait 800
+expect-text "NO FAULTS"
+report away with no music server
