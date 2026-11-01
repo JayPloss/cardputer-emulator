@@ -1,0 +1,14 @@
+# The second real crash: bad_alloc on loopTask in a small list copy behind the keyboard
+# handler, opening an app while chat's first full sync and the walkie socket run.
+expect-crash "bad_alloc"
+wait 3000
+press enter
+wait-text "HOME" 15000
+repeat 600
+press 2
+press left
+press 3
+wait 200
+press left
+end-repeat
+report no crash so far

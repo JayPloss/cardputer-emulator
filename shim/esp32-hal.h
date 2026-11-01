@@ -1,0 +1,12 @@
+#pragma once
+#include <stdint.h>
+#define log_e(...)
+#define log_w(...)
+#define log_i(...)
+#define log_d(...)
+#define log_v(...)
+#define log_n(...)
+#define ESP_LOGE(...)
+#define ESP_LOGW(...)
+#define ESP_LOGI(...)
+#define ESP_LOGD(...)

@@ -1,0 +1,11 @@
+# Boot, land on HOME, and sit there while chat does its first full sync.
+wait 3000
+press enter
+wait-text "HOME" 15000
+report boot
+wait 30000
+report 30 s
+wait 60000
+report 90 s
+wait 120000
+report 210 s

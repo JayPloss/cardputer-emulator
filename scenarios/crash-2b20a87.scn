@@ -1,0 +1,16 @@
+# The first real crash: bad_alloc on the library task listing a long book's chapters,
+# with chat running.
+expect-crash "bad_alloc"
+wait 3000
+press enter
+wait-text "HOME" 15000
+press 3
+wait-text "Stinky" 90000
+repeat 60
+press down down down
+press enter
+wait 900
+press left
+wait 1000
+end-repeat
+report no crash so far
