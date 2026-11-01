@@ -34,7 +34,7 @@ DEFINES  := -DARDUINO=10819 -DLGFX_SDL -DESP_NOW_ETH_ALEN=6
 COMMON   := -g -O1 -fno-omit-frame-pointer -funsigned-char -w $(SANFLAGS) $(DEFINES) $(INCLUDES)
 CXXFLAGS := $(COMMON) -std=gnu++17 -fexceptions
 CFLAGS   := $(COMMON) -std=gnu11
-LDFLAGS  := $(SANFLAGS) -rdynamic -pthread -Wl,--wrap=malloc,--wrap=free,--wrap=calloc,--wrap=realloc,--wrap=abort,--wrap=MP3Decode $(shell sdl2-config --libs)
+LDFLAGS  := $(SANFLAGS) -rdynamic -pthread -Wl,--wrap=malloc,--wrap=free,--wrap=calloc,--wrap=realloc,--wrap=abort,--wrap=MP3Decode,--wrap=helix_malloc $(shell sdl2-config --libs)
 
 CORE_SRC := WString.cpp Print.cpp Stream.cpp IPAddress.cpp
 CORE_C   := stdlib_noniso.c

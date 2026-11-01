@@ -5,8 +5,13 @@
 extern "C" char *itoa(int value, char *out, int radix) { return ltoa(value, out, radix); }
 extern "C" char *utoa(unsigned value, char *out, int radix) { return ultoa(value, out, radix); }
 
-// libhelix's allocation hooks: plain malloc on a board with no PSRAM.
-extern "C" void *helix_malloc(int size) { return malloc(size); }
+// libhelix's allocator, as the real library behaves: out of memory, it spins forever. The firmware
+// has to wrap this (see Makefile); a build that doesn't reaches this hang under the watchdog model.
+extern "C" void *helix_malloc(int size) {
+  void *p = calloc(1, size ? size : 1);
+  while (!p) {}
+  return p;
+}
 extern "C" void helix_free(void *p) { free(p); }
 
 // libc's _free_r, as the firmware's hook reaches it: straight to the heap.
