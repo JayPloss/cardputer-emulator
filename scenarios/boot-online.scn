@@ -1,0 +1,14 @@
+# Online boot: the splash stays through chat's first sync, then HOME, with no key pressed.
+wait-text "SYNCING" 20000
+show
+wait-text "HOME" 60000
+report at HOME
+wait 15000
+report 15 s later
+wait 60000
+report 75 s later
+press 0
+wait 500
+show
+shot system.png
+expect-text "NO FAULTS"

@@ -3,3 +3,7 @@ run/
 *.wav
 *.bin
 music_secrets.h
+
+devices/*.json
+!devices/example-synthetic.json
+logs/

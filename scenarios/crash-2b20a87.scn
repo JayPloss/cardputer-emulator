@@ -7,7 +7,7 @@ wait-text "HOME" 15000
 press 3
 wait-text "Stinky" 90000
 repeat 60
-press down down down
+press down down down down
 press enter
 wait 900
 press left

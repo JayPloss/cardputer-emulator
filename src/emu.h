@@ -32,8 +32,10 @@ void heapReport(const char *when);
 void setHeapOwner(const char *name);
 void heapOwners(char *out, size_t size);
 
-void createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void *arg, int priority, int core);
+void *createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void *arg, int priority, int core, void *heapBlock = nullptr);
+[[noreturn]] void deleteCurrentTask();
 void stackReport();
+void *currentTaskHandle();  // Null on host threads and in host scopes: they own nothing.
 
 // Prints a crash report in the shape of the device's core dump and ends the run.
 [[noreturn]] void crash(const char *kind, const char *detail);
@@ -68,6 +70,16 @@ void buttonPress();
 double audioSeconds();
 int audioUnderruns();
 double audioLevel();
+
+// Battery prediction, once a fitted model is loaded (src/power.cpp).
+void powerLoad(const char *path, double startLevel);
+void powerSetBrightness(int value);
+void powerSetVolume(int value);
+void powerStreaming(int delta);
+void powerHandshake(int delta);
+void powerReport();
+bool powerOk();
+bool powerLoaded();
 
 int runScenario();  // Returns on completion: 0 pass, 1 fail.
 void runWindow();

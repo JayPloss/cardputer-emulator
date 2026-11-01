@@ -47,10 +47,10 @@ KEYBOARD := $(LIBDEPS)/M5Cardputer/src/utility/Keyboard/Keyboard.cpp
 LIB_OBJ := $(addprefix $(LIBBUILD)/core/,$(CORE_SRC:.cpp=.o) $(CORE_C:.c=.o)) \
            $(addprefix $(LIBBUILD)/gfx/,$(GFX_CPP:.cpp=.o) $(GFX_C:.c=.o)) \
            $(addprefix $(LIBBUILD)/helix/,$(HELIX:.c=.o)) $(LIBBUILD)/Keyboard.o
-EMU_OBJ := $(addprefix $(LIBBUILD)/emu/,arduino_impl.o net_impl.o m5_impl.o scenario.o window.o mp3_cost.o heap.o runtime.o stubs.o)
+EMU_OBJ := $(addprefix $(LIBBUILD)/emu/,arduino_impl.o net_impl.o m5_impl.o scenario.o window.o mp3_cost.o heap.o runtime.o stubs.o power.o)
 FW_SRC  := $(wildcard $(FIRMWARE)/src/*.cpp)
 FW_OBJ  := $(addprefix $(BUILD)/fw/,$(notdir $(FW_SRC:.cpp=.o))) $(BUILD)/main_emu.o
-FW_FLAGS := $(CXXFLAGS) -I$(FIRMWARE)/include -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -include shim/firmware_prelude.h
+FW_FLAGS := $(CXXFLAGS) -std=gnu++11 -I$(FIRMWARE)/include -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -D__real_malloc=emuArenaMalloc -D__real_free=emuArenaFree -D__real_calloc=emuArenaCalloc -D__real_realloc=emuArenaRealloc -include shim/firmware_prelude.h
 
 BIN := $(BUILD)/cardputer-emulator
 build: $(BIN)
@@ -61,7 +61,8 @@ $(LIBBUILD)/core/%.o: $(CORE)/%.cpp ; @mkdir -p $(@D); g++ $(CXXFLAGS) -include 
 $(LIBBUILD)/core/%.o: $(CORE)/%.c ; @mkdir -p $(@D); gcc $(CFLAGS) -include shim/Arduino.h -c $< -o $@
 $(LIBBUILD)/gfx/%.o: $(M5GFX)/%.cpp ; @mkdir -p $(@D); g++ $(CXXFLAGS) -c $< -o $@
 $(LIBBUILD)/gfx/%.o: $(M5GFX)/%.c ; @mkdir -p $(@D); gcc $(CFLAGS) -c $< -o $@
-$(LIBBUILD)/helix/%.o: $(LIBDEPS)/libhelix/src/libhelix-mp3/%.c ; @mkdir -p $(@D); gcc $(CFLAGS) -c $< -o $@
+# Helix is fixed-point code built on shifts UBSan objects to, all harmless on these targets.
+$(LIBBUILD)/helix/%.o: $(LIBDEPS)/libhelix/src/libhelix-mp3/%.c ; @mkdir -p $(@D); gcc $(CFLAGS) $(if $(filter asan,$(SAN)),-fno-sanitize=undefined) -c $< -o $@
 $(LIBBUILD)/Keyboard.o: $(KEYBOARD) shim/keyboard_prelude.h
 	@mkdir -p $(@D)
 	sed -e '/IOMatrix.h/d' -e '/TCA8418.h/d' -e '/M5Unified.h/d' -e 's#"Keyboard.h"#<utility/Keyboard/Keyboard.h>#' -e 's#"../common.h"#<utility/common.h>#' -e 's#"KeyboardReader/KeyboardReader.h"#<utility/Keyboard/KeyboardReader/KeyboardReader.h>#' $< > $(LIBBUILD)/Keyboard_gen.cpp

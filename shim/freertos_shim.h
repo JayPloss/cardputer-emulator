@@ -21,6 +21,8 @@ typedef void (*TaskFunction_t)(void *);
 extern "C" {
 #endif
 void vTaskDelay(TickType_t ticks);
+void vTaskDelete(TaskHandle_t task);
+void *xTaskGetCurrentTaskHandle(void);
 BaseType_t xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name, uint32_t stack, void *arg, unsigned priority, TaskHandle_t *handle, int core);
 SemaphoreHandle_t xSemaphoreCreateMutex(void);
 BaseType_t xSemaphoreTake(SemaphoreHandle_t mutex, TickType_t ticks);

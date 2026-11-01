@@ -1,0 +1,39 @@
+# Chapters follow on their own with no list in RAM, the place follows them, and the last
+# chapter's end clears it. Then songs on the card: stereo at 128 kbps, next and previous.
+wait-text "HOME" 60000
+press 3
+wait-text "Aaa Test Book" 30000
+press enter
+wait-text "001 Chapter 1" 30000
+press enter
+wait-text "PLAYING" 15000
+wait-text "002 Chapter 2" 20000
+wait 2000
+expect-file books/Aaa Test Book/.place "002 Chapter 2.mp3"
+wait-text "003 Chapter 3" 20000
+wait 15000
+expect-text "STOPPED"
+expect-file-gone books/Aaa Test Book/.place
+expect-underruns 0
+expect-audio 30
+button
+wait 1000
+button
+wait-text "HOME" 5000
+press 2
+wait-text "ON THE CARD" 5000
+press enter
+wait-text "Aaa Test Album" 10000
+press enter
+wait-text "01 Song 1" 10000
+press enter
+wait-text "PLAYING" 15000
+wait 2000
+press right
+wait-text "02 Song 2" 8000
+wait-text "PLAYING" 8000
+press left
+wait-text "01 Song 1" 8000
+wait-text "PLAYING" 8000
+expect-underruns 0
+report stereo from the card

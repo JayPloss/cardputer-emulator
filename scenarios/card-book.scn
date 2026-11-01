@@ -1,0 +1,55 @@
+# Boot, open the long book, play a chapter from the card: resume, seek, next, HOME, reboot.
+wait-text "HOME" 60000
+report at HOME
+press 3
+wait-text "Stinky" 30000
+report book list
+press down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+report chapter list
+press enter
+wait-text "PLAYING" 15000
+report playing
+shot playing.png
+wait 60000
+report a minute in
+expect-audio 50
+expect-underruns 0
+expect-text "PLAYING"
+expect-file books/Stinky Dragon - Season 1 The Infinights/.place "001 Ep 1 Welcome to Boulderay.mp3"
+# Seek forward, then the next chapter.
+press right right
+wait 3000
+expect-text "PLAYING"
+expect-underruns 0
+# Back to HOME while it plays.
+button
+wait 500
+press left
+wait 1000
+show
+press 1
+wait 2000
+show
+expect-no-text "OUT OF MEMORY"
+chord fn esc
+wait-text "HOME" 5000
+report back at HOME, still playing
+wait 5000
+expect-audio 55
+expect-file books/Stinky Dragon - Season 1 The Infinights/.place "001 Ep 1 Welcome to Boulderay.mp3"
+reboot
+wait-text "HOME" 60000
+press 3
+wait-text "Stinky" 30000
+press down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+show
+press enter
+wait-text "PLAYING" 15000
+wait 3000
+show
+report resumed after a reboot
+expect-underruns 0

@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -43,6 +44,7 @@ struct Task {
   int priority = 0;
   int core = 0;
   uint8_t *stack = nullptr;
+  void *heapBlock = nullptr;
   std::atomic<int> blocked{0};
   pthread_t thread{};
 };
@@ -143,10 +145,19 @@ void sleepMs(uint32_t ms) { Blocked blocked; realSleepUs(uint64_t(ms) * 1000); }
 void chargeUs(uint32_t us) { realSleepUs(us); }
 void chargeMs(uint32_t ms) { realSleepUs(uint64_t(ms) * 1000); }
 
-void createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void *arg, int priority, int core) {
+void deleteCurrentTask() {
+  Task *task = currentTask;
+  { std::lock_guard<std::mutex> guard(taskLock); tasks.erase(std::find(tasks.begin(), tasks.end(), task)); }
+  HostScope host;
+  // On FreeRTOS the idle task frees it a moment later.
+  deviceFree(task->heapBlock);
+  pthread_exit(nullptr);
+}
+
+void *createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void *arg, int priority, int core, void *heapBlock) {
   HostScope host;
   auto *task = new Task;
-  task->name = name; task->fn = fn; task->arg = arg; task->stackBytes = stackBytes; task->priority = priority; task->core = core;
+  task->heapBlock = heapBlock; task->name = name; task->fn = fn; task->arg = arg; task->stackBytes = stackBytes; task->priority = priority; task->core = core;
   task->stack = static_cast<uint8_t *>(mmap(nullptr, kHostStack, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0));
   memset(task->stack, kPaint, 4096);
   pthread_attr_t attr;
@@ -154,10 +165,15 @@ void createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void 
   pthread_attr_setstack(&attr, task->stack, kHostStack);
   { std::lock_guard<std::mutex> guard(taskLock); tasks.push_back(task); }
   pthread_create(&task->thread, &attr, taskMain, task);
+  pthread_detach(task->thread);
   pthread_attr_destroy(&attr);
   static std::once_flag watchdogStarted;
   std::call_once(watchdogStarted, [] { lastIdle[0] = millis(); std::thread(watchdogThread).detach(); });
+  return task;
 }
+
+bool inHostScope();
+void *currentTaskHandle() { return inHostScope() ? nullptr : currentTask; }
 
 void stackReport() {
   std::lock_guard<std::mutex> guard(taskLock);

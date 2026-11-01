@@ -41,15 +41,18 @@ class EmuDisplay : public EmuCanvas {
  public:
   void setup();
   void setRotation(uint8_t) {}
-  void setBrightness(uint8_t) {}
+  void setBrightness(uint8_t value);
   void present();
+  // Drawing directly to the panel (the splash) shows at once.
+  size_t write(uint8_t c) override { const size_t written = EmuCanvas::write(c); commitText(); present(); return written; }
+  template <typename... A> void fillRect(A... args) { clearText(); EmuCanvasBase::fillRect(args...); }
 };
 
 class EmuSpeaker {
  public:
   bool begin();
   void end();
-  void setVolume(uint8_t) {}
+  void setVolume(uint8_t value);
   void stop();
   void stop(uint8_t channel);
   size_t isPlaying(uint8_t channel);

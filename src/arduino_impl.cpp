@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <fstream>
@@ -64,18 +65,22 @@ extern "C" void esp_fill_random(void *buffer, size_t length) {
 // ---- FreeRTOS ----
 
 extern "C" void vTaskDelay(TickType_t ticks) { emu::sleepMs(ticks); }
+extern "C" void vTaskDelete(TaskHandle_t) { emu::deleteCurrentTask(); }
+extern "C" void *xTaskGetCurrentTaskHandle(void) { return emu::currentTaskHandle(); }
 
 extern "C" BaseType_t xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name, uint32_t stack, void *arg, unsigned priority, TaskHandle_t *handle, int core) {
   // The device takes the stack and the task control block from the heap.
-  void *block = emu::deviceAlloc(stack + 360, name);  // Charged to the creator, as the stack is not the task's own use.
+  // Taken from the heap as the device does, outside any app's budget.
+  void *block = emu::deviceAlloc(stack + 360, name);
   if (!block) { printf("[task] no RAM for task '%s' (%u bytes)\n", name, stack); return pdFALSE; }
-  emu::createTask(fn, name, stack, arg, priority, core);
-  if (handle) *handle = block;
+  void *task = emu::createTask(fn, name, stack, arg, priority, core, block);
+  if (handle) *handle = task;
   return pdPASS;
 }
 
 namespace {
-struct EmuMutex { std::timed_mutex lock; };
+struct EmuMutex { std::timed_mutex lock; std::atomic<void *> owner{nullptr}; };
+thread_local char threadIdentity;
 }
 extern "C" SemaphoreHandle_t xSemaphoreCreateMutex() {
   emu::HostScope host;
@@ -83,12 +88,23 @@ extern "C" SemaphoreHandle_t xSemaphoreCreateMutex() {
 }
 extern "C" BaseType_t xSemaphoreTake(SemaphoreHandle_t mutex, TickType_t ticks) {
   auto *m = static_cast<EmuMutex *>(mutex);
-  if (m->lock.try_lock()) return pdTRUE;
-  emu::Blocked blocked;
-  if (ticks == portMAX_DELAY) { m->lock.lock(); return pdTRUE; }
-  return m->lock.try_lock_for(std::chrono::duration<double, std::milli>(ticks / emu::options.timeScale)) ? pdTRUE : pdFALSE;
+  bool got = m->lock.try_lock();
+  if (!got) {
+    emu::Blocked blocked;
+    if (ticks == portMAX_DELAY) { m->lock.lock(); got = true; }
+    else if (ticks) got = m->lock.try_lock_for(std::chrono::duration<double, std::milli>(ticks / emu::options.timeScale));
+  }
+  if (got) m->owner = &threadIdentity;
+  return got ? pdTRUE : pdFALSE;
 }
-extern "C" BaseType_t xSemaphoreGive(SemaphoreHandle_t mutex) { static_cast<EmuMutex *>(mutex)->lock.unlock(); return pdTRUE; }
+extern "C" BaseType_t xSemaphoreGive(SemaphoreHandle_t mutex) {
+  // As on FreeRTOS, a task that doesn't hold the mutex can't give it back.
+  auto *m = static_cast<EmuMutex *>(mutex);
+  if (m->owner.load() != &threadIdentity) return pdFALSE;
+  m->owner = nullptr;
+  m->lock.unlock();
+  return pdTRUE;
+}
 extern "C" void *heap_caps_malloc(size_t bytes, uint32_t) { return malloc(bytes); }
 
 // ---- NVS ----

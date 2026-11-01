@@ -43,7 +43,7 @@ class WiFiClient : public Client {
   void stop() override;
   uint8_t connected() override;
   operator bool() override { return connected(); }
-  void setTimeout(uint32_t seconds) { timeoutSeconds_ = seconds; }
+  void setTimeout(uint32_t seconds) { Stream::setTimeout(seconds * 1000); timeoutSeconds_ = seconds; }
 
  protected:
   bool fill();

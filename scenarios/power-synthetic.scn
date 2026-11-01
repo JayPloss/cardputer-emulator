@@ -1,0 +1,11 @@
+# The power model, on the made-up device: loud playback must trip the brownout check at low charge.
+wait-text "HOME" 60000
+press 3
+wait-text "Aaa Test Book" 30000
+press enter
+wait-text "Chapter 1" 20000
+press enter
+wait-text "PLAYING" 15000
+press up
+wait 8000
+report loud playback on a nearly flat battery

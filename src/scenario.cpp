@@ -15,6 +15,9 @@
 
 #include "emu.h"
 
+// The firmware's OS report, in builds that have the OS layer.
+namespace os { void snapshot(char *text, size_t size) __attribute__((weak)); }
+
 namespace emu {
 extern const char *expectedCrash;
 namespace {
@@ -166,8 +169,16 @@ int runScenario() {
       if (static_cast<long>(heapLowest()) < atol(rest.c_str())) return fail("lowest free heap was " + std::to_string(heapLowest()));
     } else if (command == "expect-no-clipping") {
       if (clippedCount() > 0) return fail(std::to_string(clippedCount()) + " pieces of text ran off the screen");
+    } else if (command == "expect-power-ok") {
+      powerReport();
+      if (!powerOk()) return fail("predicted voltage fell below the brownout level");
     } else if (command == "show") { printf("[screen]\n%s\n", shown().c_str()); }
-    else if (command == "report") { heapReport(rest.c_str()); stackReport(); printf("[audio] %.1f s played, %d underruns\n", audioSeconds(), audioUnderruns()); }
+    else if (command == "squeeze") {
+      // Takes RAM until this much is left, as a misbehaving system would, to test containment.
+      const size_t leave = atol(rest.c_str());
+      while (heapFree() > leave + 2048) if (!deviceAlloc(1024, "squeeze")) break;
+    } else if (command == "report") { heapReport(rest.c_str()); powerReport();
+      if (os::snapshot) { char text[600]; { emu::HostScope host; os::snapshot(text, sizeof(text)); } printf("[os] %s\n", text); } stackReport(); printf("[audio] %.1f s played, %d underruns\n", audioSeconds(), audioUnderruns()); }
     else return fail("unknown command " + command);
   }
   if (expectedCrash) { printf("[scenario] FAILED: the expected crash (%s) never came\n", expectedCrash); return 1; }
@@ -175,6 +186,8 @@ int runScenario() {
   stackReport();
   heapReport("at end");
   printf("[audio] %.1f s played, %d underruns\n", audioSeconds(), audioUnderruns());
+  powerReport();
+  if (!powerOk()) { printf("[scenario] FAILED: predicted voltage fell below the brownout level\n"); return 1; }
   return 0;
 }
 
@@ -206,10 +219,11 @@ bool savePng(const char *path) {
   if (!file) return false;
   const uint8_t signature[8] = {0x89, 'P', 'N', 'G', 13, 10, 26, 10};
   fwrite(signature, 1, 8, file);
-  std::vector<uint8_t> header = {0, 0, 0, width, 0, 0, 0, height, 8, 2, 0, 0, 0};
+  std::vector<uint8_t> header = {0, 0, 0, uint8_t(width), 0, 0, 0, uint8_t(height), 8, 2, 0, 0, 0};
   chunk(file, "IHDR", header);
   std::vector<uint8_t> raw;
   raw.reserve((width * 3 + 1) * height);
+  printf("[shot] %s\n", path);
   const uint16_t *pixels = screenPixels();
   for (int y = 0; y < height; y++) {
     raw.push_back(0);

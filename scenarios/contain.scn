@@ -1,0 +1,18 @@
+# RAM squeezed from under everyone: apps fail and are told, the device doesn't restart.
+wait-text "HOME" 60000
+squeeze 18000
+press 3
+wait 8000
+show
+press left
+wait 2000
+press 1
+wait 3000
+show
+chord fn esc
+wait 500
+press 0
+wait 1000
+show
+report after the squeeze
+expect-text "SYSTEM"

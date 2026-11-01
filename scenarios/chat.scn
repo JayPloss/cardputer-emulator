@@ -1,0 +1,16 @@
+# SupaChat from HOME: the first screen, typing, sending, the menu and back.
+wait-text "HOME" 60000
+press 1
+wait-text "Family" 5000
+type "hello"
+wait 500
+expect-text "hello"
+press enter
+wait 8000
+show
+report after sending
+button
+wait-text "MENU" 3000
+button
+wait-text "HOME" 3000
+expect-no-clipping

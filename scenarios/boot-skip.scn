@@ -1,0 +1,15 @@
+# A key press skips the splash; chat keeps syncing in the background and settles.
+wait-text "SYNCING" 20000
+press enter
+wait-text "HOME" 5000
+report skipped
+press 3
+wait-text "Stinky" 30000
+press left
+wait-text "HOME" 5000
+wait 60000
+report minute later
+press 0
+wait 500
+expect-text "NO FAULTS"
+show

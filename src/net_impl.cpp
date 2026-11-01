@@ -77,7 +77,7 @@ bool WiFiClient::fill() {
   if (fd_ < 0 || eof_) return false;
   if (bufferStart_ < bufferEnd_) return true;
   // lwIP keeps what the TCP window holds in pbufs, so a live stream owns that much RAM.
-  if (!windowBlock_) windowBlock_ = emu::deviceAlloc(model::kTcpWindowBytes, "tcp window");
+  if (!windowBlock_) { windowBlock_ = emu::deviceAlloc(model::kTcpWindowBytes, "tcp window"); if (windowBlock_) emu::powerStreaming(1); }
   pollfd ready{fd_, POLLIN, 0};
   if (poll(&ready, 1, 0) <= 0) return false;
   const ssize_t got = ::recv(fd_, buffer_, sizeof(buffer_), 0);
@@ -105,6 +105,7 @@ void WiFiClient::stop() {
   if (fd_ >= 0) close(fd_);
   fd_ = -1;
   emu::deviceFree(socketBlock_); socketBlock_ = nullptr;
+  if (windowBlock_) emu::powerStreaming(-1);
   emu::deviceFree(windowBlock_); windowBlock_ = nullptr;
   bufferStart_ = bufferEnd_ = 0;
 }
@@ -128,9 +129,9 @@ std::string messageJson(int id, const std::string &room) {
   static const int lengths[] = {2, 3, 4, 5, 3, 7, 2, 4, 6, 3, 2, 5, 9, 3, 4, 2, 6, 3, 28, 140};
   const int length = lengths[id % 20];
   const std::string body(length, "abcdefgh"[id % 8]);
-  const std::string author = id % 3 == 0 ? "albie" : "test1";
+  const std::string author = id % 3 == 0 ? "test2" : "test1";
   return "{\"id\":" + std::to_string(id) + ",\"client_id\":\"emu-000000-" + std::to_string(100000 + id) + "\",\"conversation_id\":\"" + room +
-         "\",\"author_id\":\"" + author + "\",\"author_name\":\"" + (id % 3 == 0 ? "Albie" : "Test") + "\",\"type\":\"text\",\"body\":\"" + body +
+         "\",\"author_id\":\"" + author + "\",\"author_name\":\"" + (id % 3 == 0 ? "Other" : "Test") + "\",\"type\":\"text\",\"body\":\"" + body +
          "\",\"created_at\":" + std::to_string(1790000000000LL + id * 60000LL) + ",\"reply_to\":null,\"receipt_state\":\"read\"}";
 }
 std::string syncReply(const std::string &request) {
@@ -163,11 +164,13 @@ static bool holdHandshake(const char *tag) {
   constexpr int kPieces = 48;
   void *pieces[kPieces] = {};
   bool ok = true;
+  emu::powerHandshake(1);
   for (int i = 0; i < kPieces && ok; i++) {
     pieces[i] = emu::deviceAlloc(model::kTlsHandshakeExtra / kPieces, tag);
     ok = pieces[i] != nullptr;
     if (ok) emu::chargeMs(model::kTlsHandshakeMs / kPieces);
   }
+  emu::powerHandshake(-1);
   for (void *piece : pieces) emu::deviceFree(piece);
   return ok;
 }
@@ -334,9 +337,10 @@ String HTTPClient::getString() {
   if (!client_) return out;
   if (size_ > 0) out.reserve(size_);
   const uint32_t deadline = emu::millis() + timeoutMs_;
-  uint8_t chunk[512];
+  uint8_t chunk[513];  // String::concat copies the terminator too.
   while (emu::millis() < deadline && (size_ < 0 || static_cast<int>(out.length()) < size_)) {
-    const int got = client_->read(chunk, sizeof(chunk));
+    const int got = client_->read(chunk, sizeof(chunk) - 1);
+    if (got > 0) chunk[got] = 0;
     if (got > 0) { out.concat(reinterpret_cast<const char *>(chunk), got); continue; }
     if (!client_->connected()) break;
     emu::sleepMs(1);

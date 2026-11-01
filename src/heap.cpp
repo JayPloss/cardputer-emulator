@@ -25,6 +25,10 @@ void *__real_malloc(size_t);
 void __real_free(void *);
 void *__real_calloc(size_t, size_t);
 void *__real_realloc(void *, size_t);
+void *__wrap_malloc(size_t);
+void __wrap_free(void *);
+void *__wrap_calloc(size_t, size_t);
+void *__wrap_realloc(void *, size_t);
 }
 
 namespace emu {
@@ -131,6 +135,7 @@ void heapOwners(char *out, size_t size) {
   size_t at = 0;
   for (int i = 0; i < ownerCount && at < size; i++) at += snprintf(out + at, size - at, "%s=%zu ", ownerNames[i], ownerBytes[i]);
 }
+bool inHostScope() { return useHost(); }
 HostScope::HostScope() { hostDepth++; }
 HostScope::~HostScope() { hostDepth--; }
 void markHostThread() { hostThread = true; }
@@ -168,20 +173,22 @@ using emu::arenaFree;
 using emu::inArena;
 using emu::useHost;
 
+// The allocator proper. The firmware's OS ledger, when the build has one, sits on top of
+// these (its __wrap_ functions replace the weak ones here); older firmware calls them directly.
 extern "C" {
-void *__wrap_malloc(size_t bytes) { return useHost() ? __real_malloc(bytes) : arenaAlloc(bytes); }
-void __wrap_free(void *p) {
+void *emuArenaMalloc(size_t bytes) { return useHost() ? __real_malloc(bytes) : arenaAlloc(bytes); }
+void emuArenaFree(void *p) {
   if (!p) return;
   if (inArena(p)) arenaFree(p); else __real_free(p);
 }
-void *__wrap_calloc(size_t count, size_t size) {
+void *emuArenaCalloc(size_t count, size_t size) {
   if (useHost()) return __real_calloc(count, size);
   void *p = arenaAlloc(count * size);
   if (p) memset(p, 0, count * size);
   return p;
 }
-void *__wrap_realloc(void *p, size_t bytes) {
-  if (!p) return __wrap_malloc(bytes);
+void *emuArenaRealloc(void *p, size_t bytes) {
+  if (!p) return emuArenaMalloc(bytes);
   if (!inArena(p)) return __real_realloc(p, bytes);
   auto *block = static_cast<emu::Header *>(p) - 1;
   if (bytes <= block->payload) { block->payload = bytes; return p; }
@@ -191,6 +198,10 @@ void *__wrap_realloc(void *p, size_t bytes) {
   arenaFree(p);
   return moved;
 }
+__attribute__((weak)) void *__wrap_malloc(size_t bytes) { return emuArenaMalloc(bytes); }
+__attribute__((weak)) void __wrap_free(void *p) { emuArenaFree(p); }
+__attribute__((weak)) void *__wrap_calloc(size_t count, size_t size) { return emuArenaCalloc(count, size); }
+__attribute__((weak)) void *__wrap_realloc(void *p, size_t bytes) { return emuArenaRealloc(p, bytes); }
 }
 
 // C++ allocation goes the same way, and throws as on the device when RAM is gone.

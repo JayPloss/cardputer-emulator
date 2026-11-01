@@ -3,7 +3,7 @@
 // Everything the emulator assumes about the Cardputer ADV (ESP32-S3FN8, no PSRAM),
 // in one place. MEASURED comes from the firmware's ELF, its sdkconfig or the core
 // dump of a real crash. ESTIMATE is a published or typical figure not yet checked
-// on Jay's hardware; STATUS on the device shows the real free heap to compare with.
+// on real hardware; STATUS on the device shows the real free heap to compare with.
 namespace model {
 
 // MEASURED: the heap runs from _heap_start in the ELF to the end of main SRAM

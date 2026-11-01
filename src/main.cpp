@@ -54,6 +54,8 @@ static void holdSystemBlocks() {
 int main(int argc, char **argv) {
   emu::markHostThread();
   emu::savedArgv = argv;
+  const char *powerFile = nullptr;
+  double charge = 1;
   for (int i = 1; i < argc; i++) {
     const auto value = [&] { return i + 1 < argc ? argv[++i] : ""; };
     if (!strcmp(argv[i], "--card")) emu::options.card = value();
@@ -62,12 +64,15 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--time-scale")) emu::options.timeScale = atof(value());
     else if (!strcmp(argv[i], "--resume")) emu::options.resumeLine = atoi(value());
     else if (!strcmp(argv[i], "--window")) emu::options.window = true;
+    else if (!strcmp(argv[i], "--power")) powerFile = value();
+    else if (!strcmp(argv[i], "--charge")) charge = atof(value());
     else { fprintf(stderr, "usage: %s --card DIR --state DIR [--scenario FILE] [--time-scale N] [--window]\n", argv[0]); return 2; }
   }
   if (!emu::options.card || !emu::options.state) { fprintf(stderr, "--card and --state are required\n"); return 2; }
   setvbuf(stdout, nullptr, _IOLBF, 0);
   emu::installCrashHandlers();
   holdSystemBlocks();
+  if (powerFile) emu::powerLoad(powerFile, charge);
   std::thread(timelineThread).detach();
   emu::createTask(loopTask, "loopTask", CONFIG_ARDUINO_LOOP_STACK_SIZE, nullptr, 1, 1);
   if (emu::options.scenario) {

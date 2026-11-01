@@ -1,0 +1,20 @@
+# The actions that crashed the two earlier builds on the real device, kept up for a while.
+wait-text "HOME" 60000
+repeat 60
+press 2
+press left
+press 3
+wait 200
+press down down down down
+press enter
+wait 600
+press left
+wait 300
+press left
+wait 200
+end-repeat
+report after the stress
+press 0
+wait 1000
+expect-text "NO FAULTS"
+show

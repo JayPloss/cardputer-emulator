@@ -1,0 +1,9 @@
+# A French build, offline so no room's language overrides it: the labels fit the screen.
+wifi off
+wait-text "MUSIQUE" 15000
+press 0
+wait 500
+show
+button
+wait 500
+expect-no-clipping

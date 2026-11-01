@@ -1,0 +1,5 @@
+# For the before picture: the older firmware, a key past the splash, then sitting on HOME.
+wait 3000
+press enter
+wait 180000
+report 3 minutes on HOME

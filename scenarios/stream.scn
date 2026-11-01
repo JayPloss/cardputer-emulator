@@ -1,0 +1,20 @@
+# time-scale 1
+# MUSIC from the home server: stream, buffer, play. Needs Navidrome reachable.
+wait-text "HOME" 60000
+press 2
+wait-text "ALBUMS" 5000
+press down
+press enter
+wait-text "( )" 40000
+press down
+press enter
+wait 15000
+show
+press enter
+wait-text "PLAYING" 30000
+report streaming
+wait 30000
+report 30 s of streaming
+expect-audio 15
+# Gaps here are the real network, which is not modelled: reported, not judged.
+report end

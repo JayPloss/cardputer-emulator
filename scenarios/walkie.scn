@@ -1,0 +1,25 @@
+# The walkie socket exists only on its screen, and holds the one secure slot while it does.
+wait-text "HOME" 60000
+press 1
+wait 1000
+button
+wait 500
+press down down down down
+press enter
+wait 8000
+show
+report on the walkie screen
+expect-heap-free 16000
+press left
+wait 3000
+press left
+wait 3000
+report left the walkie screen
+button
+wait 500
+button
+wait 500
+press 0
+wait 800
+show
+wait-text "SECURE IDLE" 15000
