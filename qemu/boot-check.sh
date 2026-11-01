@@ -57,13 +57,16 @@ boot() {
   if ! grep -q 'SUPACHAT ready' "$log"; then echo "boot-check: $name FAILED, setup() did not finish"; tail -12 "$log" | cut -c1-150; exit 1; fi
 }
 
+if [ "${BOOT_CHECK_ONLY:-}" != tight ]; then
 boot play
 grep -qE 'AUTOPILOT done played=[01] state=ENDED position=(19|20)' "$log" || { echo "boot-check: play FAILED, the book didn't play to its end"; exit 1; }
 grep -q 'AUTOPILOT end' "$log" || { echo "boot-check: play FAILED, stopping the player's task hung"; exit 1; }
 
+fi
 boot tight
 [ "$(grep -cE 'AUTOPILOT round=[123] state=(PLAYING|ENDED)' "$log")" = 3 ] || { echo "boot-check: tight FAILED, stop and play again didn't fit"; exit 1; }
 
+[ "${BOOT_CHECK_ONLY:-}" = tight ] && { grep -E "AUTOPILOT" "$log" | cut -c1-200; exit 0; }
 boot squeeze
 grep -qE 'AUTOPILOT done played=0 state=FAILED.*NO MEMORY' "$log" || { echo "boot-check: squeeze FAILED, running out of memory wasn't reported as NO MEMORY"; exit 1; }
 

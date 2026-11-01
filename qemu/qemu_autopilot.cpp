@@ -37,13 +37,17 @@ void autopilotTask(void *) {
   if (!media::begin()) Serial.println("AUTOPILOT no player task");
   if (tight) {
     for (int round = 1; round <= 3; round++) {
+      // The firmware ends the player's task whenever nothing plays and no media app is open.
+      media::begin();
       media::playFile("/books/Test/001 Test.mp3", 0);
       vTaskDelay(pdMS_TO_TICKS(3000));
       Serial.printf("AUTOPILOT round=%d state=%s free=%u largest=%u failure=%s\n", round, stateName(media::state()), ESP.getFreeHeap(), ESP.getMaxAllocHeap(), media::failure());
       media::stop();
       vTaskDelay(pdMS_TO_TICKS(1000));
+      Serial.printf("AUTOPILOT after-stop state=%s refused=%u used=%u\n", stateName(media::state()), os::refusedAllocations(), os::used(os::mediaOwner()));
     }
   }
+  media::begin();
   media::playFile("/books/Test/001 Test.mp3", 0);
   media::State last = media::State::Idle;
   bool played = false;
