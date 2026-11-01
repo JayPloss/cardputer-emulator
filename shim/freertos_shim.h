@@ -21,6 +21,12 @@ typedef void (*TaskFunction_t)(void *);
 extern "C" {
 #endif
 void vTaskDelay(TickType_t ticks);
+size_t heap_caps_get_allocated_size(void *block);
+struct portMUX_TYPE { volatile int locked; };
+#define portMUX_INITIALIZER_UNLOCKED {0}
+void portENTER_CRITICAL(struct portMUX_TYPE *mux);
+void portEXIT_CRITICAL(struct portMUX_TYPE *mux);
+int xPortInIsrContext(void);
 void vTaskDelete(TaskHandle_t task);
 void *xTaskGetCurrentTaskHandle(void);
 BaseType_t xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name, uint32_t stack, void *arg, unsigned priority, TaskHandle_t *handle, int core);

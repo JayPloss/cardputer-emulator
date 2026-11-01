@@ -46,6 +46,7 @@ struct Header {
 };
 constexpr uint32_t kMagic = 0xC0DEB10C;
 constexpr size_t kHeader = sizeof(Header);
+constexpr uint8_t kTailCanary[4] = {0xBA, 0xAD, 0xF0, 0x0D};
 
 uint8_t *arena = nullptr;
 size_t arenaSize = 0;
@@ -81,7 +82,7 @@ void *arenaAlloc(size_t bytes) {
   ensureArena();
   if (bytes > arenaSize) return nullptr;
   // The device's cost for this request, with room for this host's header inside it.
-  size_t need = (bytes + 3) & ~size_t(3);
+  size_t need = (bytes + sizeof(kTailCanary) + 3) & ~size_t(3);
   need += model::kBlockOverhead;
   if (need < model::kMinBlock) need = model::kMinBlock;
   need = kHeader + ((need - model::kBlockOverhead + (kAlign - 1)) & ~(kAlign - 1)) + (model::kBlockOverhead > kHeader ? model::kBlockOverhead - kHeader : 0);
@@ -104,7 +105,9 @@ void *arenaAlloc(size_t bytes) {
         ownerBytes[currentOwner] += block->size;
         freeBytes -= block->size;
         if (freeBytes < lowest) lowest = freeBytes;
-        UNPOISON(block + 1, bytes);
+        UNPOISON(block + 1, bytes + sizeof(kTailCanary));
+        memcpy(reinterpret_cast<uint8_t *>(block + 1) + bytes, kTailCanary, sizeof(kTailCanary));
+        POISON(reinterpret_cast<uint8_t *>(block + 1) + bytes, sizeof(kTailCanary));
         return block + 1;
       }
     }
@@ -115,7 +118,11 @@ void *arenaAlloc(size_t bytes) {
 void arenaFree(void *p) {
   std::lock_guard<std::recursive_mutex> guard(lock);
   auto *block = static_cast<Header *>(p) - 1;
-  if (block->magic != kMagic || !block->used) crash("heap corruption", "free() of a block that is not allocated");
+  // As multi_heap_poisoning does on the device: a pointer the allocator never handed out (say, one
+  // shifted by an allocation hook, then freed by libc's path past the hook) has no canary before it.
+  if (block->magic != kMagic || !block->used) crash("assert multi_heap_poisoning: head != NULL", "CORRUPT HEAP: free() of a pointer with no valid head canary");
+  UNPOISON(static_cast<uint8_t *>(p) + block->payload, sizeof(kTailCanary));
+  if (memcmp(static_cast<uint8_t *>(p) + block->payload, kTailCanary, sizeof(kTailCanary)) != 0) crash("assert multi_heap_poisoning: tail canary", "CORRUPT HEAP: something wrote past the end of a block");
   block->used = 0;
   ownerBytes[block->owner] -= block->size;
   freeBytes += block->size;
@@ -191,12 +198,20 @@ void *emuArenaRealloc(void *p, size_t bytes) {
   if (!p) return emuArenaMalloc(bytes);
   if (!inArena(p)) return __real_realloc(p, bytes);
   auto *block = static_cast<emu::Header *>(p) - 1;
-  if (bytes <= block->payload) { block->payload = bytes; return p; }
+  if (bytes <= block->payload) {
+    block->payload = bytes;
+    memcpy(static_cast<uint8_t *>(p) + bytes, emu::kTailCanary, sizeof(emu::kTailCanary));
+    return p;
+  }
   void *moved = arenaAlloc(bytes);
   if (!moved) return nullptr;
   memcpy(moved, p, block->payload);
   arenaFree(p);
   return moved;
+}
+size_t heap_caps_get_allocated_size(void *p) {
+  if (!inArena(p)) return 0;
+  return (static_cast<emu::Header *>(p) - 1)->payload;
 }
 __attribute__((weak)) void *__wrap_malloc(size_t bytes) { return emuArenaMalloc(bytes); }
 __attribute__((weak)) void __wrap_free(void *p) { emuArenaFree(p); }

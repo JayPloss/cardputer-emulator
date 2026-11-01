@@ -138,6 +138,7 @@ int runScenario() {
       snprintf(next, sizeof(next), "%d", static_cast<int>(marker + 1));
       armPowerCut(when.c_str(), what.c_str(), next);
     } else if (command == "card-full") cardFull(rest == "on");
+    else if (command == "bypass-libc-free") bypassFree(rest == "on");
     else if (command == "after-cut") return fail("the armed power cut never happened");
     else if (command == "wait-text" || command == "expect-text") {
       std::istringstream parts(rest);

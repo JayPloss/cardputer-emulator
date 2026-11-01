@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
 NEEDS_CARD = {'card-book', 'boot-skip', 'contain', 'stress-apps'}
-ALL = ['boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french']
+ALL = ['boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french']
 
 
 def build(tag='current', extra=()):
@@ -58,19 +58,8 @@ def runnable(name):
     return name != 'stream' or server_reachable()
 
 
-def refuse_allocator_wrap():
-    # A --wrap of malloc or free boot-looped a real device: libc's free bypasses it.
-    ini = Path(os.environ.get('FIRMWARE', Path.home() / 'Work/cardputer-adv-supachat/firmware')) / 'platformio.ini'
-    if ini.exists() and re.search(r'--wrap=(malloc|free|calloc|realloc)', ini.read_text()):
-        print(f'REFUSED: {ini} wraps the allocator, which crashes the real device at boot')
-        return True
-    return False
-
-
 def main():
     names = sys.argv[1:] or ALL
-    if refuse_allocator_wrap():
-        return 1
     build()
     failed = 0
     if 'french' in names:
@@ -84,7 +73,7 @@ def main():
         if not ok:
             print('\n'.join(line for line in done.stdout.splitlines() if 'FAILED' in line or 'CRASH' in line or '[screen]' in line))
     # Scenarios run side by side: they share nothing but the CPU, and the virtual clock waits little.
-    with ThreadPool(6) as pool:
+    with ThreadPool(4) as pool:
         finished = {}
         for name, done in pool.imap_unordered(lambda n: (n, run(n)) if runnable(n) else (n, None), names):
             finished[name] = done

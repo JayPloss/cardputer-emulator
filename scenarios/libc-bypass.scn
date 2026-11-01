@@ -1,0 +1,18 @@
+# Frees that get past every hook, as ROM code's would: stale ledger entries must cost nothing but
+# an overcount. No crash, the card still lists and plays, and stopping the app clears the count.
+bypass-libc-free on
+wait-text "HOME" 60000
+press 3
+wait-text "Aaa Test Book" 15000
+report stale entries building
+press enter
+wait 3000
+show
+press left
+wait 1000
+press left
+wait 3000
+report after the app stopped
+press 0
+wait 800
+show

@@ -1,3 +1,4 @@
+# time-scale 2
 # A new network from a fresh boot, through the Networks menu, with the saved one out of range:
 # a wrong password first, then the right one. It stays saved across a reboot.
 nets-clear

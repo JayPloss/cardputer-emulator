@@ -36,9 +36,16 @@ Run against two commits that crashed on a real Cardputer, with no change to eith
 
 It also found, in the new firmware before any device saw it: a repeated chapter when one ended, a list answer arriving after its app had closed, a task deleting itself while being restarted, a JSON read timing out on a slow server, and a decoder probe that reported "not an MP3" when it had really run out of memory.
 
+## Two tiers
+
+`make check` runs both, and SupaChat's upload gate refuses an upload without them.
+
+1. **Scenarios, native** (`tools/check.py`, below): the firmware's source on shims, on a device-sized heap. It sees app behaviour, RAM use over a scenario, keys, screens, audio and network behaviours.
+2. **Real binary in QEMU** (`qemu/boot-check.sh`): the actual firmware binary under Espressif's ESP32-S3 QEMU, with the real ROM, bootloader, ESP-IDF startup, heap, newlib, FATFS and prebuilt libraries. It passes when the binary reaches the end of `setup()` and stays up with no panic, assert or corrupt heap. It lacks Wi-Fi, SPI SD (the card goes through SD_MMC instead, via the `qemu` build), display and keyboard hardware, and I2S, so it proves boot and little beyond it: no key is pressed, nothing plays, nothing connects.
+
 ## A pass doesn't prove the device boots
 
-The emulator doesn't run ESP-IDF's startup, its real heap, or any prebuilt library (Wi-Fi, lwIP, mbedTLS, newlib, FATFS, the real M5Unified). Tasks, mutexes, the speaker, SD, NVS and the keyboard reader are all shims of what the firmware calls, and they behave as those shims were written. Code that only ran here has not run. A firmware OS layer that passed every scenario here boot-looped on the first real boot, because libc's `free` bypassed its `--wrap` of `malloc`. That exact failure now fails a check: `tools/check.py` refuses a `--wrap` of the allocator, and an open file's memory goes in by `malloc` and out past any wrapper, so a prefixing allocator crashes here too. The next such failure will be a different one.
+The native tier doesn't run ESP-IDF's startup, its real heap, or any prebuilt library (Wi-Fi, lwIP, mbedTLS, newlib, FATFS, the real M5Unified). Tasks, mutexes, the speaker, SD, NVS and the keyboard reader are all shims of what the firmware calls, and they behave as those shims were written. Code that only ran here has not run. A firmware OS layer that passed every scenario here boot-looped on the first real boot, because libc's `free` bypassed its `--wrap` of `malloc`. That exact failure now reproduces here: blocks carry canaries, an open file's memory goes in by `malloc` and out past any hook as libc's does on the device, and a free of a shifted pointer aborts the way `multi_heap_poisoning` does. `tools/repro-wrap-crash.sh` shows it. The next such failure will be a different one.
 
 ## What it can't tell you
 

@@ -66,6 +66,9 @@ extern "C" void esp_fill_random(void *buffer, size_t length) {
 // ---- FreeRTOS ----
 
 extern "C" void vTaskDelay(TickType_t ticks) { emu::sleepMs(ticks); }
+extern "C" void portENTER_CRITICAL(portMUX_TYPE *mux) { while (__atomic_exchange_n(&mux->locked, 1, __ATOMIC_ACQUIRE)) {} }
+extern "C" void portEXIT_CRITICAL(portMUX_TYPE *mux) { __atomic_store_n(&mux->locked, 0, __ATOMIC_RELEASE); }
+extern "C" int xPortInIsrContext(void) { return 0; }
 extern "C" void vTaskDelete(TaskHandle_t) { emu::deleteCurrentTask(); }
 extern "C" void *xTaskGetCurrentTaskHandle(void) { return emu::currentTaskHandle(); }
 
@@ -172,7 +175,11 @@ size_t Preferences::putBool(const char *key, bool value) { emu::HostScope host; 
 
 // ---- SD ----
 
+extern "C" void __wrap__free_r(struct _reent *, void *);
+__attribute__((weak)) void __wrap__free_r(struct _reent *, void *block) { emu::deviceFree(block); }
+
 namespace {
+std::atomic<bool> bypassLibcFree{false};
 std::string cutWhen, cutWhat, cutResume;
 std::atomic<bool> cutArmed{false}, cardIsFull{false};
 void maybeCut(const char *when, const std::string &path, FILE *flushFirst = nullptr) {
@@ -203,6 +210,7 @@ void armPowerCut(const char *when, const char *what, const char *resumeLine) {
   cutArmed = true;
 }
 void cardFull(bool on) { cardIsFull = on; }
+void bypassFree(bool on) { bypassLibcFree = on; }
 }  // namespace emu
 
 struct File::State {
@@ -239,7 +247,9 @@ void File::close() {
   if (--state_->refs == 0) {
     if (state_->file) fclose(state_->file);
     if (state_->dir) closedir(state_->dir);
-    emu::deviceFree(state_->block);  // The direct route, as libc's own free takes.
+    // libc's route: its _free_r goes straight to the heap, unless a firmware hook wraps it. With
+    // bypassLibcFree on, not even that hook sees it, as with a free from ROM code.
+    if (bypassLibcFree) emu::deviceFree(state_->block); else __wrap__free_r(nullptr, state_->block);
     delete state_;
   }
   state_ = nullptr;

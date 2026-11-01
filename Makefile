@@ -50,7 +50,7 @@ LIB_OBJ := $(addprefix $(LIBBUILD)/core/,$(CORE_SRC:.cpp=.o) $(CORE_C:.c=.o)) \
 EMU_OBJ := $(addprefix $(LIBBUILD)/emu/,arduino_impl.o net_impl.o m5_impl.o scenario.o window.o mp3_cost.o heap.o runtime.o stubs.o power.o)
 FW_SRC  := $(wildcard $(FIRMWARE)/src/*.cpp)
 FW_OBJ  := $(addprefix $(BUILD)/fw/,$(notdir $(FW_SRC:.cpp=.o))) $(BUILD)/main_emu.o
-FW_FLAGS := $(CXXFLAGS) -std=gnu++11 -I$(FIRMWARE)/include -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -include shim/firmware_prelude.h
+FW_FLAGS := $(CXXFLAGS) -std=gnu++11 -I$(FIRMWARE)/include -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -D__real_malloc=emuArenaMalloc -D__real_free=emuArenaFree -D__real_calloc=emuArenaCalloc -D__real_realloc=emuArenaRealloc -D__real__free_r=emuFreeR -include shim/firmware_prelude.h
 
 BIN := $(BUILD)/cardputer-emulator
 build: $(BIN)
@@ -68,11 +68,12 @@ $(LIBBUILD)/Keyboard.o: $(KEYBOARD) shim/keyboard_prelude.h
 	sed -e '/IOMatrix.h/d' -e '/TCA8418.h/d' -e '/M5Unified.h/d' -e 's#"Keyboard.h"#<utility/Keyboard/Keyboard.h>#' -e 's#"../common.h"#<utility/common.h>#' -e 's#"KeyboardReader/KeyboardReader.h"#<utility/Keyboard/KeyboardReader/KeyboardReader.h>#' $< > $(LIBBUILD)/Keyboard_gen.cpp
 	g++ $(CXXFLAGS) -include shim/keyboard_prelude.h -c $(LIBBUILD)/Keyboard_gen.cpp -o $@
 $(LIBBUILD)/emu/%.o: src/%.cpp src/emu.h src/device_model.h $(wildcard shim/*.h) ; @mkdir -p $(@D); g++ $(CXXFLAGS) -c $< -o $@
-$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
+$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/os.h $(FIRMWARE)/include/shared_text.h $(FIRMWARE)/include/media_player.h $(FIRMWARE)/include/music_library.h) ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 $(BUILD)/main_emu.o: src/main.cpp src/device_model.h src/emu.h ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 
 check:
 	python3 tools/check.py
+	qemu/boot-check.sh $(FIRMWARE)
 
 clean:
 	rm -rf build run

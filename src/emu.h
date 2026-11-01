@@ -60,6 +60,7 @@ void netClear();
 // the next scenario line, with the card as it stood. A full card fails every write.
 void armPowerCut(const char *when, const char *what, const char *resumeLine);
 void cardFull(bool on);
+void bypassFree(bool on);
 extern char **savedArgv;
 
 // The screen, for scenarios and the window.
