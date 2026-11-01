@@ -14,8 +14,10 @@ wait 200
 press down
 press enter
 wait-text "Cabin" 30000
+# On a loaded host the list can draw a while before the UI task reads keys again.
+wait 1000
 press enter
-wait-text "TYPE PASSWORD" 3000
+wait-text "TYPE PASSWORD" 10000
 type "wrong"
 press enter
 wait-text "FAILED" 25000
