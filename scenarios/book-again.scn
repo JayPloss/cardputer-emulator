@@ -1,0 +1,19 @@
+# Play a book, stop it, choose another without leaving BOOKS: the second needs the room the first had.
+wait-text "HOME" 60000
+press 3
+wait-text "Stinky" 30000
+press down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+press enter
+wait-text "PLAYING" 15000
+wait 3000
+type "s"
+wait-text "Stinky" 30000
+press enter
+wait 1000
+press enter
+wait-text "PLAYING" 25000
+report second book playing
+wait 3000
+expect-text "PLAYING"

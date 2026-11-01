@@ -10,6 +10,8 @@
 
 namespace {
 constexpr uint32_t kSqueezeTo = 30 * 1024;
+// About what the player needs: stopping and starting again must fit as the first start did.
+constexpr uint32_t kTightTo = 85 * 1024;
 
 const char *stateName(media::State state) {
   switch (state) {
@@ -25,13 +27,23 @@ const char *stateName(media::State state) {
 void autopilotTask(void *) {
   vTaskDelay(pdMS_TO_TICKS(8000));
   Serial.printf("AUTOPILOT start free=%u largest=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
-  if (SD.exists("/squeeze")) {
-    while (ESP.getFreeHeap() > kSqueezeTo + 1024) {
+  const bool tight = SD.exists("/tight");
+  if (SD.exists("/squeeze") || tight) {
+    while (ESP.getFreeHeap() > (tight ? kTightTo : kSqueezeTo) + 1024) {
       if (!heap_caps_malloc(1024, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)) break;
     }
     Serial.printf("AUTOPILOT squeezed free=%u largest=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
   }
   if (!media::begin()) Serial.println("AUTOPILOT no player task");
+  if (tight) {
+    for (int round = 1; round <= 3; round++) {
+      media::playFile("/books/Test/001 Test.mp3", 0);
+      vTaskDelay(pdMS_TO_TICKS(3000));
+      Serial.printf("AUTOPILOT round=%d state=%s free=%u largest=%u failure=%s\n", round, stateName(media::state()), ESP.getFreeHeap(), ESP.getMaxAllocHeap(), media::failure());
+      media::stop();
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+  }
   media::playFile("/books/Test/001 Test.mp3", 0);
   media::State last = media::State::Idle;
   bool played = false;

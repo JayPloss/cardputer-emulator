@@ -52,6 +52,7 @@ class EmuSpeaker {
  public:
   bool begin();
   void end();
+  void setChannelVolume(uint8_t, uint8_t) {}
   void setVolume(uint8_t value);
   void stop();
   void stop(uint8_t channel);

@@ -38,6 +38,7 @@ boot() {
   "$cache/tools/usr/bin/mmd" -i "$card" ::/books ::/books/Test ::/music
   "$cache/tools/usr/bin/mcopy" -i "$card" "$work/test.mp3" "::/books/Test/001 Test.mp3"
   [ "$name" = squeeze ] && "$cache/tools/usr/bin/mcopy" -i "$card" "$work/room.tsv" ::/squeeze
+  [ "$name" = tight ] && "$cache/tools/usr/bin/mcopy" -i "$card" "$work/room.tsv" ::/tight
   timeout "$seconds" "$cache/qemu/bin/qemu-system-xtensa" -M esp32s3 -nographic -no-reboot \
     -drive "file=$flash,if=mtd,format=raw" -drive "file=$card,if=sd,format=raw" \
     -serial "file:$log" -monitor none < /dev/null 2>&1 | tail -3
@@ -59,6 +60,9 @@ boot() {
 boot play
 grep -qE 'AUTOPILOT done played=[01] state=ENDED position=(19|20)' "$log" || { echo "boot-check: play FAILED, the book didn't play to its end"; exit 1; }
 grep -q 'AUTOPILOT end' "$log" || { echo "boot-check: play FAILED, stopping the player's task hung"; exit 1; }
+
+boot tight
+[ "$(grep -cE 'AUTOPILOT round=[123] state=(PLAYING|ENDED)' "$log")" = 3 ] || { echo "boot-check: tight FAILED, stop and play again didn't fit"; exit 1; }
 
 boot squeeze
 grep -qE 'AUTOPILOT done played=0 state=FAILED.*NO MEMORY' "$log" || { echo "boot-check: squeeze FAILED, running out of memory wasn't reported as NO MEMORY"; exit 1; }
