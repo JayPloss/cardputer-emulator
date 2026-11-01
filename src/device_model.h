@@ -32,7 +32,7 @@ constexpr SystemBlock kSystemBlocks[] = {
     {"M5Unified speaker task and DMA buffers", 7000},
     {"M5Unified, M5GFX display driver state", 3000},
     {"FATFS mount, SD driver", 5000},
-    // CALIBRATED, not measured: with the estimates above, the two actions that crashed Albie's
+    // CALIBRATED, not measured: with the estimates above, the two actions that crashed a real
     // Cardputer bottomed out with a few KB free. The real dumps show bad_alloc on a tiny
     // allocation, so the real figure is lower than the estimates add up to. Reading STATUS on
     // the device replaces this with a measurement.
