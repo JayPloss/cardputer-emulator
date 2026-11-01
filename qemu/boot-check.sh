@@ -16,7 +16,7 @@ trap 'rm -rf "$work"' EXIT
 # The autopilot stays out of the firmware repo's sources; it is copied in for this build only.
 cp "$here/qemu_autopilot.cpp" "$firmware/src/qemu_autopilot.cpp"
 trap 'rm -rf "$work"; rm -f "$firmware/src/qemu_autopilot.cpp"' EXIT
-(cd "$firmware" && PLATFORMIO_BUILD_SRC_FLAGS="-DQEMU_AUTOPILOT" pio run -e qemu) > "$work/build.log" 2>&1 || { tail -20 "$work/build.log"; echo "boot-check: build failed"; exit 2; }
+(cd "$firmware" && pio run -e qemu) > "$work/build.log" 2>&1 || { tail -20 "$work/build.log"; echo "boot-check: build failed"; exit 2; }
 build="$firmware/.pio/build/qemu"
 python=$(uv tool dir)/platformio/bin/python
 bootapp=$(find ~/.platformio/packages/framework-arduinoespressif32/tools/partitions -name boot_app0.bin)
