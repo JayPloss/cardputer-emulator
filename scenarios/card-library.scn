@@ -1,0 +1,46 @@
+# A whole library on the card: 37 folders, the first holding 200 songs with long names, played twice,
+# and the folder list opened while a song plays. Needs its own card: CARD=<folder> tools/check.py card-library
+wait-text "HOME" 60000
+report at HOME
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "0 A 1" 30000
+report folder list
+press enter
+wait-text "Agn" 60000
+report 200 songs listed
+press down down down
+press enter
+wait-text "PLAYING" 20000
+report playing stereo
+wait 15000
+report 15 seconds in
+expect-audio 14
+expect-underruns 0
+expect-text "PLAYING"
+# The rear button goes back to the music menu while it plays; start another from the list.
+button
+wait-text "CARD" 5000
+press enter
+wait-text "0 A 1" 30000
+press enter
+wait-text "Agn" 60000
+press down
+press enter
+wait-text "PLAYING" 20000
+wait 10000
+expect-underruns 0
+report second song
+button
+wait 500
+press left
+wait 500
+press left
+wait 500
+press left
+wait 1000
+press 0
+wait 1000
+expect-text "NO FAULTS"
+report end
