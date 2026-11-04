@@ -5,13 +5,10 @@ nets-clear
 net Cabin secret nonav
 wait-text "HOME" 30000
 report fresh boot, no known network
-press 1
-wait 500
-button
-wait-text "MENU" 3000
 press right
 wait 200
-press down
+press right
+wait-text "WI-FI" 3000
 press enter
 wait-text "Cabin" 30000
 # On a loaded host the list can draw a while before the UI task reads keys again.

@@ -1,0 +1,66 @@
+# HOME's pages: the arrows walk through them, the ends bump, settings open and come back to HOME.
+wait-text "HOME" 60000
+wait-text "SUPACHAT" 3000
+shot page1.png
+press left
+shot bump-left.png
+expect-text "SUPACHAT"
+wait 400
+press right
+wait 300
+press right
+wait-text "WI-FI" 3000
+expect-text "LANGUAGE"
+expect-no-clipping
+shot page2.png
+press left
+wait-text "SUPACHAT" 3000
+press right
+wait-text "WI-FI" 3000
+# Volume, on the same page.
+press right
+wait 300
+press enter
+wait-text "VOLUME" 3000
+expect-text "OK BACK"
+press enter
+wait-text "WI-FI" 3000
+# Status, and the rear button comes back to HOME.
+press left
+wait 300
+press down
+wait 300
+press enter
+wait-text "NODE" 3000
+button
+wait-text "LANGUAGE" 3000
+# On to page 3 from the right column of page 2.
+press right
+wait 300
+press right
+wait-text "CHARGING" 3000
+expect-text "LOCAL OFF"
+expect-text "CHANGELOG"
+expect-text "SYSTEM"
+expect-no-clipping
+shot page3.png
+press right
+wait 300
+press right
+shot bump-right.png
+expect-text "CHANGELOG"
+wait 400
+# Landing keeps the row, so this is the bottom right; the changelog is one to the left.
+# Its first entry is this build. Back with the top-left key.
+press left
+wait 300
+press enter
+wait-text "v0.55" 3000
+press esc
+wait-text "CHANGELOG" 3000
+press 4
+wait-text "FREE" 3000
+press enter
+wait-text "CHANGELOG" 3000
+report pages walked
+expect-no-clipping

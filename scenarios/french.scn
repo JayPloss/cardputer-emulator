@@ -7,3 +7,12 @@ show
 button
 wait 500
 expect-no-clipping
+# HOME's pages in French.
+press right
+wait 300
+press right
+wait-text "LANGUE" 3000
+press right
+wait-text "VERSIONS" 3000
+expect-text "LOCAL NON"
+expect-no-clipping
