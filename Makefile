@@ -71,6 +71,12 @@ $(LIBBUILD)/emu/%.o: src/%.cpp src/emu.h src/device_model.h $(wildcard shim/*.h)
 $(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/os.h $(FIRMWARE)/include/shared_text.h $(FIRMWARE)/include/media_player.h $(FIRMWARE)/include/music_library.h) ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 $(BUILD)/main_emu.o: src/main.cpp src/device_model.h src/emu.h ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 
+# The candidate fonts on real M5GFX: tools/font-specimen.py runs this and makes the contact sheet.
+font-specimen: build/font-specimen/font-specimen
+build/font-specimen/font-specimen: tools/font-specimen.cpp $(FIRMWARE)/lab/font_samples.h $(LIB_OBJ) $(EMU_OBJ)
+	@mkdir -p $(@D)
+	g++ $(CXXFLAGS) -I$(FIRMWARE)/lab tools/font-specimen.cpp $(filter $(LIBBUILD)/gfx/%,$(LIB_OBJ)) $(filter $(LIBBUILD)/core/%,$(LIB_OBJ)) -o $@ -pthread $(shell sdl2-config --libs 2>/dev/null || echo -lSDL2)
+
 check:
 	python3 tools/check.py
 	qemu/boot-check.sh $(FIRMWARE)
@@ -78,4 +84,4 @@ check:
 clean:
 	rm -rf build run
 
-.PHONY: build check clean
+.PHONY: build check clean font-specimen

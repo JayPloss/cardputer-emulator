@@ -12,6 +12,8 @@ Built for [SupaChat](https://github.com/JayPloss/cardputer-adv-supachat), whose 
     SAN=asan make build         # or SAN=tsan: the same, under a sanitizer
     tools/seed.sh run/mine ~/my-card && build/current/cardputer-emulator --card run/mine/card --state run/mine/state --window
 
+    python3 -I tools/font-specimen.py out/   # every candidate font in SupaChat's firmware/lab/font_samples.h, on real M5GFX: measurements and a contact sheet
+
 `--window` is the interactive mode: the screen at 3x, the PC keyboard as the Cardputer's (arrows are the arrow cluster, Esc the top-left key, Left Ctrl is Fn, F1 the rear button). Paths default to a PlatformIO build of the firmware at `~/Work/cardputer-adv-supachat`; set `FIRMWARE`, `LIBDEPS` and `SECRETS_DIR` to change that. `CARD` names a folder laid out like the microSD. Short test audio is generated, so scenarios that only need a test book don't need one.
 
 ## What is real and what is modelled
