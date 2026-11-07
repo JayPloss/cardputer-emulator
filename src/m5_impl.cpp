@@ -238,7 +238,10 @@ size_t EmuSpeaker::isPlaying(uint8_t index) {
   if (channel.now.data || channel.now.toneEnd) return channel.next.data ? 2 : 1;
   return 0;
 }
+namespace { std::atomic<int> toneCount{0}; }
+int emu::takeToneCount() { return toneCount.exchange(0); }
 bool EmuSpeaker::tone(float, uint32_t ms, int channel, bool) {
+  toneCount++;
   emu::HostScope host;
   startSpeaker();
   std::lock_guard<std::mutex> guard(speakerLock);

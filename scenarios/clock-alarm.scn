@@ -1,0 +1,75 @@
+# The alarm: set by typing, fires in another app, snoozes, fires again; on a weekday it brings the
+# device out of charging mode. The clock is set by NTP when the network answers.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "ALARM IS OFF" 3000
+shot alarm-off.png
+expect-no-clipping
+clock 2026-11-09 06:59:10
+type "0700"
+wait-text "7:00 AM" 3000
+expect-text "ONCE"
+press right
+wait-text "MON-FRI" 3000
+wait-text "IN 1 MIN" 3000
+shot alarm-on.png
+expect-no-clipping
+expect-nvs "alarm_rep	62"
+press esc
+# Over to chat: left to the timer, left to page one, left to SUPACHAT.
+press left
+wait 300
+press left
+wait 300
+press left
+wait 300
+press enter
+wait-text "SNOOZE" 100000
+expect-no-clipping
+shot alarm-ringing.png
+wait 1200
+press a
+wait 500
+expect-no-text "SNOOZE"
+# Chat is a text screen: the top-left key needs Fn there.
+chord fn esc
+wait-text "ALARM SNOOZED" 3000
+wait-text "OTHER KEY: SNOOZE" 320000
+wait 1200
+press enter
+wait 500
+expect-no-text "SNOOZE"
+# The next morning, charging, with the screen dim: the alarm brings it back and rings.
+clock 2026-11-10 06:59:20
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait-text "CHARGING" 3000
+press enter
+wait 500
+press enter
+wait 3000
+expect-text "CHARG"
+expect-tones 0
+wait-text "SNOOZE" 70000
+shot alarm-from-charging.png
+wait 1500
+expect-tones 4
+press enter
+wait 500
+expect-text "HOME"
+report alarm done

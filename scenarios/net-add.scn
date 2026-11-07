@@ -8,6 +8,10 @@ report fresh boot, no known network
 press right
 wait 200
 press right
+wait 200
+press right
+wait 200
+press right
 wait-text "WI-FI" 3000
 press enter
 wait-text "Cabin" 30000

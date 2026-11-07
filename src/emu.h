@@ -1,4 +1,5 @@
 #pragma once
+#include <ctime>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -51,6 +52,13 @@ struct Options {
 };
 extern Options options;
 extern bool wifiAvailable;
+// The wall clock, on the virtual clock; a scenario's `clock` line sets it.
+void setWallClock(time_t epoch);
+time_t wallClock();
+// Whether a time server would answer: joined to a network with the internet.
+bool ntpReachable();
+// Tones the firmware started, since the last count was taken.
+int takeToneCount();
 // The Wi-Fi networks in range. Behaviour says what a joined network lets through:
 // home (everything), nonav (internet, but the music server's address goes nowhere), captive
 // (joins, TLS fails at once), nointernet (joins, everything times out), joinfail (never joins).

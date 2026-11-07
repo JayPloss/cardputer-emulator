@@ -1,0 +1,64 @@
+# The timer: typed time, start, it keeps counting on HOME, rings until a key stops it. The stopwatch.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "TIMER" 3000
+press enter
+wait-text "READY" 3000
+shot timer-idle.png
+expect-no-clipping
+press del
+wait-text "TYPE A TIME" 3000
+type "10"
+wait-text "0:10" 3000
+press enter
+wait-text "RUNNING" 3000
+expect-no-clipping
+shot timer-running.png
+press esc
+wait-text "TIMER 0:0" 3000
+expect-tones 0
+wait-text "TIME'S UP!" 15000
+expect-no-clipping
+shot timer-ringing.png
+# The first second ignores keys, so typing under way can't stop it.
+press a
+expect-text "TIME'S UP!"
+wait 3000
+expect-tones 6
+press a
+expect-tones 0
+wait-text "TIMER" 3000
+expect-no-text "TIME'S UP!"
+wait 1500
+expect-tones 0 0
+# Back in the timer, the time is ready again; the presets step up.
+press enter
+wait-text "0:10" 3000
+press right
+wait-text "1:00" 3000
+press right
+wait-text "2:00" 3000
+press up
+wait-text "3:00" 3000
+press esc
+# The stopwatch keeps running away from its screen.
+press right
+wait 300
+press down
+wait 300
+press enter
+wait-text "0:00.0" 3000
+press enter
+wait 3000
+press esc
+wait 1000
+press enter
+wait-text "0:04" 3000
+expect-no-clipping
+shot stopwatch.png
+press enter
+press del
+wait-text "0:00.0" 3000
+report timer done

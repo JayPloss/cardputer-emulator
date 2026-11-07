@@ -116,6 +116,19 @@ int runScenario() {
       }
     } else if (command == "button") { buttonPress(); sleepMs(100); }
     else if (command == "wifi") wifiAvailable = rest == "on";
+    else if (command == "clock") {
+      // clock YYYY-MM-DD HH:MM:SS, in the time zone the firmware set.
+      struct tm wall{};
+      if (sscanf(rest.c_str(), "%d-%d-%d %d:%d:%d", &wall.tm_year, &wall.tm_mon, &wall.tm_mday, &wall.tm_hour, &wall.tm_min, &wall.tm_sec) != 6) return fail("clock wants YYYY-MM-DD HH:MM:SS");
+      wall.tm_year -= 1900; wall.tm_mon -= 1; wall.tm_isdst = -1;
+      setWallClock(mktime(&wall));
+    } else if (command == "expect-tones") {
+      // expect-tones min [max]: tones started since the last expect-tones.
+      int least = 0, most = -1;
+      sscanf(rest.c_str(), "%d %d", &least, &most);
+      const int count = takeToneCount();
+      if (count < least || (most >= 0 && count > most)) return fail(std::to_string(count) + " tones played");
+    }
     else if (command == "nets-clear") netClear();
     else if (command == "net") {
       std::istringstream parts(rest);

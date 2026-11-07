@@ -42,6 +42,11 @@ void netAdd(const char *ssid, const char *password, const char *behaviour) {
   std::lock_guard<std::mutex> guard(netLock);
   nets.push_back({ssid, password, behaviour});
 }
+bool ntpReachable() {
+  if (!joined) return false;
+  const std::string b = behaviourNow();
+  return b.empty() || b == "home" || b == "nonav";
+}
 void netClear() {
   HostScope host;
   std::lock_guard<std::mutex> guard(netLock);

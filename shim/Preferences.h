@@ -9,6 +9,8 @@ class Preferences {
   size_t putString(const char *key, const String &value);
   uint8_t getUChar(const char *key, uint8_t fallback = 0);
   size_t putUChar(const char *key, uint8_t value);
+  uint32_t getUInt(const char *key, uint32_t fallback = 0);
+  size_t putUInt(const char *key, uint32_t value);
   int32_t getInt(const char *key, int32_t fallback = 0);
   size_t putInt(const char *key, int32_t value);
   bool getBool(const char *key, bool fallback = false);

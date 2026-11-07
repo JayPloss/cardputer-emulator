@@ -1,0 +1,50 @@
+# time-scale 20
+# Screen time: 15 minutes, counting while chat is open; warnings at 5 and 1 minutes, then the alert.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "SCREEN" 3000
+press down
+wait 300
+press enter
+wait-text "30 MIN" 3000
+expect-no-clipping
+shot screen-idle.png
+press left
+wait-text "15 MIN" 3000
+press enter
+wait-text "TIME LEFT" 3000
+shot screen-running.png
+expect-no-clipping
+press esc
+wait-text "SCREEN TIME 14:" 3000
+# Over to chat: up to the timer, left to page one, left to SUPACHAT.
+press up
+wait 300
+press left
+wait 300
+press left
+wait 300
+press enter
+wait 2000
+expect-no-text "SCREEN: 5 MIN LEFT"
+expect-tones 0
+wait-text "SCREEN: 5 MIN LEFT" 620000
+expect-tones 2
+shot screen-warning.png
+expect-no-clipping
+wait 11000
+expect-no-text "SCREEN: 5 MIN LEFT"
+wait-text "SCREEN: 1 MIN LEFT" 260000
+expect-tones 2
+shot screen-warning-1.png
+wait-text "SCREEN TIME IS OVER" 70000
+expect-no-clipping
+shot screen-over.png
+wait 2000
+expect-tones 4
+press enter
+wait 500
+expect-no-text "SCREEN TIME IS OVER"
+report screen time done

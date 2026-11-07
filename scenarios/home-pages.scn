@@ -9,14 +9,22 @@ wait 400
 press right
 wait 300
 press right
-wait-text "WI-FI" 3000
-expect-text "LANGUAGE"
+wait-text "TIMER" 3000
+expect-text "STOPWATCH"
+expect-text "SCREEN"
 expect-no-clipping
 shot page2.png
 press left
 wait-text "SUPACHAT" 3000
 press right
+wait-text "TIMER" 3000
+press right
+wait 300
+press right
 wait-text "WI-FI" 3000
+expect-text "LANGUAGE"
+expect-no-clipping
+shot page3.png
 # Volume, on the same page.
 press right
 wait 300
@@ -34,7 +42,7 @@ press enter
 wait-text "NODE" 3000
 button
 wait-text "LANGUAGE" 3000
-# On to page 3 from the right column of page 2.
+# On to page 4 from the right column of page 3.
 press right
 wait 300
 press right
@@ -43,7 +51,7 @@ expect-text "LOCAL OFF"
 expect-text "CHANGELOG"
 expect-text "SYSTEM"
 expect-no-clipping
-shot page3.png
+shot page4.png
 press right
 wait 300
 press right
@@ -55,7 +63,7 @@ wait 400
 press left
 wait 300
 press enter
-wait-text "v0.55" 3000
+wait-text "v0.56" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4

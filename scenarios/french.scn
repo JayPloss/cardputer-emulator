@@ -7,7 +7,55 @@ show
 button
 wait 500
 expect-no-clipping
-# HOME's pages in French.
+# HOME's pages in French, and the clock apps' screens.
+press right
+wait 300
+press right
+wait-text "MINUTEUR" 3000
+expect-text "CHRONO"
+expect-no-clipping
+press enter
+wait-text "TAPER" 3000
+expect-no-clipping
+type "90"
+press enter
+wait-text "EN COURS" 3000
+expect-no-clipping
+press esc
+press right
+wait 300
+press enter
+wait-text "HEURE INCONNUE" 3000
+expect-no-clipping
+type "0730"
+wait-text "07:30" 3000
+press right
+press right
+wait-text "CHAQUE JOUR" 3000
+expect-no-clipping
+press esc
+press down
+wait 300
+press enter
+wait-text "DEPART" 3000
+expect-no-clipping
+press esc
+press left
+wait 300
+press enter
+wait-text "TEMPS D'ECRAN" 3000
+expect-no-clipping
+press enter
+wait-text "TEMPS RESTANT" 3000
+expect-no-clipping
+press esc
+wait-text "MINUTEUR" 3000
+wait-text "C'EST FINI" 120000
+expect-no-clipping
+shot fr-ringing.png
+wait 1200
+press a
+wait-text "TEMPS D'ECRAN" 3000
 press right
 wait 300
 press right

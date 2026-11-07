@@ -1,4 +1,5 @@
 // Arduino, FreeRTOS, NVS and the SD card, on the emulator's runtime.
+#include <esp_sntp.h>
 #include <Arduino.h>
 #include <Preferences.h>
 #include <SD.h>
@@ -31,9 +32,23 @@ void yield() { emu::sleepMs(1); }
 long random(long max) { return max > 0 ? static_cast<long>(esp_random() % static_cast<uint32_t>(max)) : 0; }
 long random(long low, long high) { return low + random(high - low); }
 bool setCpuFrequencyMhz(uint32_t) { return true; }
-void configTzTime(const char *tz, const char *, const char *, const char *) { setenv("TZ", tz, 1); tzset(); }
+// The wall clock runs on the virtual clock, from the host's time at start or from a scenario's
+// `clock` line, so a sped-up run's clock speeds up with it, as the device's would.
+namespace { time_t wallBase = 0; uint32_t wallBaseMs = 0; sntp_sync_time_cb_t sntpCallback = nullptr; }
+namespace emu {
+void setWallClock(time_t epoch) { wallBase = epoch; wallBaseMs = emu::millis(); }
+time_t wallClock() {
+  if (!wallBase) setWallClock(time(nullptr));
+  return wallBase + static_cast<time_t>((emu::millis() - wallBaseMs) / 1000);
+}
+}  // namespace emu
+void sntp_set_time_sync_notification_cb(sntp_sync_time_cb_t callback) { sntpCallback = callback; }
+void configTzTime(const char *tz, const char *, const char *, const char *) {
+  setenv("TZ", tz, 1); tzset();
+  if (sntpCallback && emu::ntpReachable()) { timeval now{emu::wallClock(), 0}; sntpCallback(&now); }
+}
 bool getLocalTime(struct tm *info, uint32_t) {
-  const time_t now = time(nullptr);
+  const time_t now = emu::wallClock();
   localtime_r(&now, info);
   return true;
 }
@@ -168,6 +183,8 @@ size_t Preferences::putString(const char *key, const String &value) {
 }
 uint8_t Preferences::getUChar(const char *key, uint8_t fallback) { return nvsNumber(key, fallback); }
 size_t Preferences::putUChar(const char *key, uint8_t value) { emu::HostScope host; nvsPut(key, std::to_string(value)); return 1; }
+uint32_t Preferences::getUInt(const char *key, uint32_t fallback) { return nvsNumber(key, fallback); }
+size_t Preferences::putUInt(const char *key, uint32_t value) { emu::HostScope host; nvsPut(key, std::to_string(value)); return 4; }
 int32_t Preferences::getInt(const char *key, int32_t fallback) { return nvsNumber(key, fallback); }
 size_t Preferences::putInt(const char *key, int32_t value) { emu::HostScope host; nvsPut(key, std::to_string(value)); return 4; }
 bool Preferences::getBool(const char *key, bool fallback) { return nvsNumber(key, fallback) != 0; }

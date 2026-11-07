@@ -1,0 +1,21 @@
+# No Wi-Fi since turning on: the clock is only the build time, so the alarm says so and never rings.
+wifi off
+wait-text "HOME" 15000
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press enter
+wait-text "CLOCK NOT SET" 3000
+expect-text "OFF  ONCE"
+clock 2026-11-09 06:59:50
+type "0700"
+wait-text "CLOCK NOT SET" 3000
+expect-no-clipping
+shot alarm-noclock.png
+wait 75000
+expect-no-text "SNOOZE"
+expect-text "CLOCK NOT SET"
+report no clock done
