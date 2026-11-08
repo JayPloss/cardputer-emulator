@@ -1,0 +1,19 @@
+# STATUS names the step that failed: a network whose behaviour is "dnsfail".
+# Certificates and DNS are stand-ins here (see shim/WiFiClientSecure.h): this checks what the
+# firmware does with each failure, not that the real TLS library reports it so.
+nets-clear
+net EMU-LAN emu dnsfail
+wait-text "HOME" 60000
+press right
+wait 200
+press right
+wait 200
+press right
+wait 200
+press right
+wait 300
+press 3
+wait-text "DNS FAILED" 60000
+show
+shot link-dnsfail.png
+expect-no-clipping

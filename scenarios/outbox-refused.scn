@@ -1,0 +1,15 @@
+# The server refuses a message for good (403): it is marked NOT SENT, stays in the outbox, and is
+# kept across a restart instead of retried forever in silence.
+nets-clear
+net EMU-LAN emu reject403
+wait-text "HOME" 60000
+press 1
+wait-text "Family" 5000
+type "nope"
+press enter
+wait-text "1 NOT SENT" 30000
+shot outbox-refused.png
+expect-no-clipping
+chord fn up
+wait-text "NOT SENT (403)" 3000
+show

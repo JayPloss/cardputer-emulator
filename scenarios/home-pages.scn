@@ -39,6 +39,8 @@ wait 300
 press down
 wait 300
 press enter
+wait-text "LEFT/RIGHT PAGE" 3000
+press right
 wait-text "NODE" 3000
 button
 wait-text "LANGUAGE" 3000
@@ -63,7 +65,7 @@ wait 400
 press left
 wait 300
 press enter
-wait-text "v0.56" 3000
+wait-text "v0.57" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4

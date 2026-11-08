@@ -130,6 +130,20 @@ extern "C" void *heap_caps_malloc(size_t bytes, uint32_t) { return malloc(bytes)
 
 namespace {
 std::mutex nvsLock;
+// Values may hold tabs and newlines (the outbox does), so the file escapes them.
+std::string nvsEscape(const std::string &v) {
+  std::string out;
+  for (char c : v) { if (c == '\\') out += "\\\\"; else if (c == '\t') out += "\\t"; else if (c == '\n') out += "\\n"; else out += c; }
+  return out;
+}
+std::string nvsUnescape(const std::string &v) {
+  std::string out;
+  for (size_t i = 0; i < v.size(); i++) {
+    if (v[i] != '\\' || i + 1 == v.size()) { out += v[i]; continue; }
+    const char n = v[++i]; out += n == 't' ? '\t' : n == 'n' ? '\n' : n;
+  }
+  return out;
+}
 std::map<std::string, std::string> &nvs() {
   static auto *values = [] {
     auto *loaded = new std::map<std::string, std::string>;
@@ -137,7 +151,7 @@ std::map<std::string, std::string> &nvs() {
     std::string line;
     while (std::getline(file, line)) {
       const auto tab = line.find('\t');
-      if (tab != std::string::npos) (*loaded)[line.substr(0, tab)] = line.substr(tab + 1);
+      if (tab != std::string::npos) (*loaded)[line.substr(0, tab)] = nvsUnescape(line.substr(tab + 1));
     }
     return loaded;
   }();
@@ -148,7 +162,14 @@ void nvsPut(const char *key, const std::string &value) {
   std::lock_guard<std::mutex> guard(nvsLock);
   nvs()[key] = value;
   std::ofstream file(std::string(emu::options.state) + "/nvs.txt");
-  for (const auto &[k, v] : nvs()) file << k << '\t' << v << '\n';
+  for (const auto &[k, v] : nvs()) file << k << '\t' << nvsEscape(v) << '\n';
+}
+void nvsErase(const char *key) {
+  emu::HostScope host;
+  std::lock_guard<std::mutex> guard(nvsLock);
+  nvs().erase(key);
+  std::ofstream file(std::string(emu::options.state) + "/nvs.txt");
+  for (const auto &[k, v] : nvs()) file << k << '\t' << nvsEscape(v) << '\n';
 }
 bool nvsGet(const char *key, std::string &value) {
   emu::HostScope host;
@@ -166,8 +187,10 @@ long nvsNumber(const char *key, long fallback) {
 }  // namespace
 
 bool Preferences::begin(const char *, bool) { return true; }
+// NVS strings hold up to 4000 bytes with the terminator (ESP-IDF nvs_set_str); longer ones are
+// refused, as on the device. Reads come back whole, however long.
 String Preferences::getString(const char *key, const String &fallback) {
-  char copy[256];
+  char copy[4000];
   {
     emu::HostScope host;
     std::string value;
@@ -177,10 +200,12 @@ String Preferences::getString(const char *key, const String &fallback) {
   return String(copy);
 }
 size_t Preferences::putString(const char *key, const String &value) {
+  if (value.length() > 3999) return 0;
   std::string copy;
   { emu::HostScope host; copy = value.c_str(); nvsPut(key, copy); }
   return value.length();
 }
+bool Preferences::remove(const char *key) { nvsErase(key); return true; }
 uint8_t Preferences::getUChar(const char *key, uint8_t fallback) { return nvsNumber(key, fallback); }
 size_t Preferences::putUChar(const char *key, uint8_t value) { emu::HostScope host; nvsPut(key, std::to_string(value)); return 1; }
 uint32_t Preferences::getUInt(const char *key, uint32_t fallback) { return nvsNumber(key, fallback); }

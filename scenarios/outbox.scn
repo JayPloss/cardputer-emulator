@@ -1,0 +1,32 @@
+# A message typed with no network waits in the outbox, survives a restart, and is sent when the
+# network comes back. Before v0.57 nothing showed it was unsent, and it lived only in RAM's list.
+nets-clear
+wait-text "HOME" 60000
+press 1
+wait-text "Family" 5000
+type "first"
+press enter
+wait 2000
+expect-text "first"
+expect-nvs "first"
+shot outbox-waiting.png
+reboot
+wait-text "HOME" 60000
+press 1
+wait-text "first" 10000
+button
+wait 300
+button
+wait 300
+press right
+wait 200
+press right
+wait 200
+press right
+wait 200
+press right
+wait 300
+press 3
+wait-text "SERVER OK" 60000
+wait-text "OUTBOX 0 waiting, 0 failed" 30000
+show

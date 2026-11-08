@@ -23,6 +23,8 @@ class WiFiClass {
   wifi_auth_mode_t encryptionType(int) { return WIFI_AUTH_WPA2_PSK; }
   uint8_t *BSSID(int = 0);
   int32_t channel(int = 0) { return 6; }
+  // A stand-in: no lookup leaves the host. It fails when not joined, and on a "dnsfail" network.
+  int hostByName(const char *host, IPAddress &address);
 };
 extern WiFiClass WiFi;
 
@@ -33,6 +35,9 @@ class WiFiClient : public Client {
   int connect(IPAddress ip, uint16_t port) override;
   int connect(const char *host, uint16_t port) override;
   int connectWithin(const char *host, uint16_t port, uint32_t timeoutMs);
+  // The firmware's port probe after a failed TLS connection. Modelled: no socket is opened; it
+  // succeeds unless the network drops the port ("nointernet", "block443").
+  int connect(IPAddress ip, uint16_t port, int32_t timeoutMs);
   size_t write(uint8_t c) override { return write(&c, 1); }
   size_t write(const uint8_t *buffer, size_t size) override;
   using Print::write;

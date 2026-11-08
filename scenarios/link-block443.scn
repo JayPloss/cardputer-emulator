@@ -1,0 +1,19 @@
+# STATUS names the step that failed: a network whose behaviour is "block443".
+# Certificates and DNS are stand-ins here (see shim/WiFiClientSecure.h): this checks what the
+# firmware does with each failure, not that the real TLS library reports it so.
+nets-clear
+net EMU-LAN emu block443
+wait-text "HOME" 60000
+press right
+wait 200
+press right
+wait 200
+press right
+wait 200
+press right
+wait 300
+press 3
+wait-text "PORT 443 BLOCKED" 60000
+show
+shot link-block443.png
+expect-no-clipping

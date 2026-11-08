@@ -9,6 +9,7 @@ class WebSocketsClient {
   void onEvent(Event event) { event_ = event; }
   void setReconnectInterval(unsigned long) {}
   void beginSSL(const char *host, uint16_t port, const char *path, const char *fingerprint = "");
+  void beginSslWithCA(const char *host, uint16_t port, const char *path, const char *ca = nullptr) { beginSSL(host, port, path, ""); }
   void disconnect();
   void loop();
   bool sendBIN(const uint8_t *, size_t) { return true; }

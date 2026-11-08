@@ -55,6 +55,11 @@ void netClear() {
 }  // namespace emu
 
 void WiFiClass::disconnect(bool, bool) { joined = false; }
+int WiFiClass::hostByName(const char *, IPAddress &address) {
+  if (!joined || behaviourNow() == "dnsfail") { emu::sleepMs(joined ? 2000 : 0); return 0; }
+  address = IPAddress(203, 0, 113, 7);  // A documentation address; nothing connects to it.
+  return 1;
+}
 wl_status_t WiFiClass::begin(const char *ssid, const char *password) {
   emu::sleepMs(1000);
   emu::HostScope host;
@@ -126,6 +131,13 @@ int WiFiClient::connectWithin(const char *host, uint16_t port, uint32_t timeoutM
   if (fd_ < 0) { stop(); return 0; }
   eof_ = false;
   bufferStart_ = bufferEnd_ = 0;
+  return 1;
+}
+int WiFiClient::connect(IPAddress, uint16_t, int32_t timeoutMs) {
+  stop();
+  if (WiFi.status() != WL_CONNECTED) return 0;
+  const std::string behaviour = behaviourNow();
+  if (behaviour == "nointernet" || behaviour == "block443") { emu::sleepMs(timeoutMs); return 0; }
   return 1;
 }
 size_t WiFiClient::write(const uint8_t *data, size_t size) {
@@ -212,6 +224,22 @@ std::string syncReply(const std::string &request) {
   }
   return "{\"server_time\":1790000000000,\"room_id\":\"" + room + "\",\"messages\":[" + messages + "],\"receipts\":[]" + tail + "}";
 }
+// POST /api/messages: stores nothing, and answers as server.mjs does, with the message as saved.
+std::string jsonField(const std::string &json, const std::string &name) {
+  const auto at = json.find("\"" + name + "\":\"");
+  if (at == std::string::npos) return "";
+  const auto start = at + name.size() + 4;
+  std::string value;
+  for (size_t i = start; i < json.size() && json[i] != '"'; i++) { if (json[i] == '\\' && i + 1 < json.size()) i++; value += json[i]; }
+  return value;
+}
+std::string postReply(const std::string &request) {
+  static int nextId = kRoomMessages + 1;
+  const std::string body = request.substr(request.find("\r\n\r\n") + 4);
+  return "{\"message\":{\"id\":" + std::to_string(nextId++) + ",\"client_id\":\"" + jsonField(body, "client_id") + "\",\"conversation_id\":\"" +
+         jsonField(body, "room_id") + "\",\"author_id\":\"albie\",\"author_name\":\"Albie\",\"type\":\"text\",\"body\":\"" + jsonField(body, "body") +
+         "\",\"created_at\":1790000000000,\"reply_to\":null,\"receipt_state\":\"server\"}}";
+}
 std::string roomsReply() {
   return "{\"rooms\":[{\"id\":\"family\",\"name\":\"Family\",\"kind\":\"room\",\"group_id\":\"g1\",\"group_name\":\"Family\",\"default_language\":\"en\",\"latest_message_id\":804,\"unread_count\":0,\"color_index\":1},"
          "{\"id\":\"k-buds\",\"name\":\"K-BUDS\",\"kind\":\"room\",\"group_id\":\"g2\",\"group_name\":\"Friends\",\"default_language\":\"en\",\"latest_message_id\":218,\"unread_count\":0,\"color_index\":2}]}";
@@ -247,10 +275,12 @@ WiFiClientSecure::~WiFiClientSecure() { stop(); }
 int WiFiClientSecure::connect(const char *host, uint16_t port) { return connect(host, port, 30000); }
 int WiFiClientSecure::connect(const char *, uint16_t, int32_t timeoutMs) {
   stop();
+  error_ = "";
   if (WiFi.status() != WL_CONNECTED) return 0;
   {
     const std::string behaviour = behaviourNow();
-    if (behaviour == "nointernet") { emu::sleepMs(timeoutMs); return 0; }
+    if (behaviour == "nointernet" || behaviour == "block443" || behaviour == "dnsfail") { emu::sleepMs(timeoutMs); error_ = "connect timed out"; return 0; }
+    if (behaviour == "badcert" && chain_) { emu::sleepMs(1500); error_ = "X509 - Certificate verification failed"; return 0; }
     if (behaviour == "captive") { emu::sleepMs(400); return 0; }  // The portal answers TLS with plain HTTP.
   }
   socketBlock_ = emu::deviceAlloc(model::kSocketBytes, "socket");
@@ -276,10 +306,26 @@ void WiFiClientSecure::prepareReply() {
   emu::HostScope host;
   exchange_->answered = true;
   const std::string &request = exchange_->request;
-  const std::string body = request.find("/api/rooms") != std::string::npos ? roomsReply()
-                           : request.find("/api/device/sync") != std::string::npos ? syncReply(request) : "{}";
-  exchange_->reply = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + std::to_string(body.size()) + "\r\nConnection: close\r\n\r\n" + body;
+  const std::string behaviour = behaviourNow();
+  const bool posting = request.compare(0, 19, "POST /api/messages ") == 0;
+  int code = 200;
+  std::string body;
+  if (behaviour == "auth401") { code = 401; body = "{\"error\":\"unauthorized\"}"; }
+  else if (posting && behaviour == "reject403") { code = 403; body = "{\"error\":\"room_forbidden\"}"; }
+  else if (posting) { code = 201; body = postReply(request); }
+  else body = request.find("/api/rooms") != std::string::npos ? roomsReply()
+              : request.find("/api/device/sync") != std::string::npos ? syncReply(request) : "{}";
+  const char *reason = code == 200 ? "OK" : code == 201 ? "Created" : code == 401 ? "Unauthorized" : "Forbidden";
+  exchange_->reply = "HTTP/1.1 " + std::to_string(code) + " " + reason + "\r\nContent-Type: application/json\r\nContent-Length: " + std::to_string(body.size()) + "\r\nConnection: close\r\n\r\n" + body;
   emu::chargeMs(40);
+}
+bool WiFiClientSecure::verify(const char *, const char *) {
+  const std::string behaviour = behaviourNow();
+  return behaviour != "certrenewed" && behaviour != "badcert";
+}
+int WiFiClientSecure::lastError(char *buffer, size_t size) {
+  if (size) { snprintf(buffer, size, "%s", error_); }
+  return error_[0] ? -9984 : 0;
 }
 int WiFiClientSecure::available() { prepareReply(); return exchange_ ? exchange_->reply.size() - exchange_->at : 0; }
 int WiFiClientSecure::read() { uint8_t c; return read(&c, 1) == 1 ? c : -1; }
