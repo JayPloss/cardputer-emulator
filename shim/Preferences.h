@@ -16,4 +16,8 @@ class Preferences {
   size_t putInt(const char *key, int32_t value);
   bool getBool(const char *key, bool fallback = false);
   size_t putBool(const char *key, bool value);
+  bool isKey(const char *key);
+  size_t getBytesLength(const char *key);
+  size_t getBytes(const char *key, void *buffer, size_t maxLength);
+  size_t putBytes(const char *key, const void *value, size_t length);
 };

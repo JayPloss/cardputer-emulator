@@ -29,10 +29,18 @@ wait-text "HEURE INCONNUE" 3000
 expect-no-clipping
 type "0730"
 wait-text "07:30" 3000
+expect-text "LUN-VEN"
+expect-text "SAM-DIM"
 press right
 press right
-wait-text "CHAQUE JOUR" 3000
+press enter
+wait 300
+press down
+wait-text "NOUVEAU REVEIL" 3000
+expect-text "ENTER OU 0-9: NOUVEAU"
 expect-no-clipping
+shot alarm-french.png
+press up
 press esc
 press down
 wait 300

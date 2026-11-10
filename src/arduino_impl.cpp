@@ -214,6 +214,34 @@ int32_t Preferences::getInt(const char *key, int32_t fallback) { return nvsNumbe
 size_t Preferences::putInt(const char *key, int32_t value) { emu::HostScope host; nvsPut(key, std::to_string(value)); return 4; }
 bool Preferences::getBool(const char *key, bool fallback) { return nvsNumber(key, fallback) != 0; }
 size_t Preferences::putBool(const char *key, bool value) { emu::HostScope host; nvsPut(key, value ? "1" : "0"); return 1; }
+bool Preferences::isKey(const char *key) { emu::HostScope host; std::string value; return nvsGet(key, value); }
+// Blobs are kept as "blob:" and hex. As on the device, a key of another type has no blob length,
+// an empty blob isn't written, and a buffer smaller than the blob reads nothing.
+size_t Preferences::getBytesLength(const char *key) {
+  emu::HostScope host;
+  std::string value;
+  if (!nvsGet(key, value) || value.rfind("blob:", 0) != 0) return 0;
+  return (value.size() - 5) / 2;
+}
+size_t Preferences::getBytes(const char *key, void *buffer, size_t maxLength) {
+  const size_t length = getBytesLength(key);
+  if (!length || !buffer || length > maxLength) return 0;
+  emu::HostScope host;
+  std::string value;
+  nvsGet(key, value);
+  for (size_t index = 0; index < length; index++)
+    static_cast<uint8_t *>(buffer)[index] = static_cast<uint8_t>(std::stoi(value.substr(5 + index * 2, 2), nullptr, 16));
+  return length;
+}
+size_t Preferences::putBytes(const char *key, const void *value, size_t length) {
+  if (!key || !value || !length) return 0;
+  emu::HostScope host;
+  std::string text = "blob:";
+  char pair[3];
+  for (size_t index = 0; index < length; index++) { snprintf(pair, sizeof(pair), "%02x", static_cast<const uint8_t *>(value)[index]); text += pair; }
+  nvsPut(key, text);
+  return length;
+}
 
 // ---- SD ----
 

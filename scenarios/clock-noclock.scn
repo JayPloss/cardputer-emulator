@@ -9,7 +9,7 @@ press right
 wait 300
 press enter
 wait-text "CLOCK NOT SET" 3000
-expect-text "OFF  ONCE"
+expect-text "+ NEW ALARM"
 clock 2026-11-09 06:59:50
 type "0700"
 wait-text "CLOCK NOT SET" 3000

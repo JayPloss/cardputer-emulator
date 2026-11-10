@@ -1,5 +1,6 @@
-# The alarm: set by typing, fires in another app, snoozes, fires again; on a weekday it brings the
-# device out of charging mode. The clock is set by NTP when the network answers.
+# The alarms: two set by typing, one weekdays and one weekends; the weekday one fires in another app,
+# snoozes, fires again; the next morning it brings the device out of charging mode; Saturday rings
+# only the weekend one. The clock is set by NTP when the network answers.
 wait-text "HOME" 60000
 press right
 wait 300
@@ -8,19 +9,49 @@ wait-text "ALARM" 3000
 press right
 wait 300
 press enter
-wait-text "ALARM IS OFF" 3000
-shot alarm-off.png
+wait-text "+ NEW ALARM" 3000
+expect-no-text "MON-FRI"
+shot alarm-empty.png
 expect-no-clipping
+# Monday. The first digit on the last row adds an alarm (7:00 on weekdays) and starts its time.
 clock 2026-11-09 06:59:10
 type "0700"
 wait-text "7:00 AM" 3000
-expect-text "ONCE"
+expect-text "MON-FRI"
+wait-text "NEXT RINGS IN 1 MIN" 3000
+expect-nvs "alarms	blob:01070001"
+# A second one: Enter on the last row, 9:30, weekdays off, weekends on.
+press down
+wait 300
+press enter
+wait 300
+type "0930"
+wait-text "9:30 AM" 3000
 press right
-wait-text "MON-FRI" 3000
-wait-text "IN 1 MIN" 3000
-shot alarm-on.png
+wait 300
+press enter
+wait 300
+press right
+wait 300
+press enter
+wait 300
+expect-nvs "alarms	blob:02070001091e02"
+shot alarm-list.png
 expect-no-clipping
-expect-nvs "alarm_rep	62"
+# Past the last switch: a bump, and nothing changes.
+press right
+wait 300
+expect-nvs "alarms	blob:02070001091e02"
+# A third, deleted again.
+press down
+wait 300
+press enter
+wait 300
+expect-nvs "alarms	blob:03070001091e02070001"
+press del
+wait 300
+expect-nvs "alarms	blob:02070001091e02"
+expect-text "+ NEW ALARM"
 press esc
 # Over to chat: left to the timer, left to page one, left to SUPACHAT.
 press left
@@ -69,6 +100,18 @@ wait-text "SNOOZE" 70000
 shot alarm-from-charging.png
 wait 1500
 expect-tones 4
+press enter
+wait 500
+expect-text "HOME"
+# Saturday: 7:00 is a weekday alarm and stays quiet; 9:30 is the weekend one and rings.
+clock 2026-11-14 06:59:30
+wait 75000
+expect-no-text "SNOOZE"
+clock 2026-11-14 09:29:30
+wait-text "SNOOZE" 70000
+expect-text "9:30 AM"
+shot alarm-weekend.png
+wait 1200
 press enter
 wait 500
 expect-text "HOME"
