@@ -1,0 +1,105 @@
+# The French keyboard (SupaChat v0.58), on a French build: chat types the Canadian French CSA
+# layout through the real M5Cardputer keyboard code; Tab opens the generated KEYS page; Wi-Fi
+# passwords still type their keycaps. Bodies are checked in NVS, where the outbox keeps them in UTF-8:
+# the screen holds Font0's CP437 bytes, which a scenario line can't spell.
+nets-clear
+net Cabin a?b nonav
+wait-text "HOME" 30000
+press 1
+wait-text "TAB: TOUCHES" 5000
+# Shift+6 is ?, / is é, [ then e is ê, Alt+Z and Alt+X are « », Alt+U is ù, Shift+, and Shift+. are ' and ".
+chord shift 6
+expect-text "?"
+expect-no-text "TAB: TOUCHES"
+press /
+press [
+wait 200
+expect-text "^"
+press e
+chord alt z
+chord alt u
+chord alt x
+chord shift ,
+chord shift .
+press ] \ '
+press space
+# A dead key then Del: the accent goes, the text stays.
+press [
+press del
+press [
+chord shift i
+press o
+press [
+press space
+chord shift [
+press i
+wait 300
+shot chat-fr.png
+expect-no-clipping
+press enter
+wait 2000
+expect-nvs "?éê«ù»'"
+expect-nvs "çàè Îo^ï"
+# The arrows still navigate with Fn, and type punctuation without it.
+press , .
+wait 300
+expect-text ",."
+press del del
+# Tab: the KEYS page, generated from the layout table.
+press tab
+wait-text "TOUCHES 1/7" 3000
+expect-text "SHIFT+6"
+expect-text "SHIFT+LETTRE: MAJUSCULE"
+expect-no-clipping
+shot keys-page1.png
+press down
+wait-text "TOUCHES 2/7" 3000
+expect-text "[ PUIS E"
+expect-no-clipping
+shot keys-page2.png
+press down down down down
+wait-text "TOUCHES 6/7" 3000
+expect-no-clipping
+press down
+wait-text "TOUCHES 7/7" 3000
+expect-text "ALT+[ PUIS ESPACE"
+expect-no-clipping
+shot keys-page7.png
+# The last page: Down bumps and stays.
+press down
+wait 300
+expect-text "TOUCHES 7/7"
+press enter
+wait-text "TAB: TOUCHES" 3000
+# The rear button from the KEYS page goes back to chat too.
+press tab
+wait-text "TOUCHES 1/7" 3000
+button
+wait-text "TAB: TOUCHES" 3000
+# Wi-Fi: the password types what the keycaps show, ? included; the hint names the menu button.
+chord fn esc
+wait-text "HOME" 3000
+press right
+wait 200
+press right
+wait 200
+press right
+wait 200
+press right
+wait-text "WI-FI" 3000
+press enter
+wait-text "Cabin" 30000
+wait 1000
+press enter
+wait-text "MENU ANNULER" 10000
+expect-no-text "GAUCHE ANNULER"
+expect-no-clipping
+shot password-fr.png
+press a
+chord shift /
+press b
+expect-text "a?b"
+press enter
+wait-text "SAVED" 25000
+expect-nvs "a?b"
+report french keyboard done

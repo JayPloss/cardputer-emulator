@@ -1,0 +1,62 @@
+# Typing an alarm time (SupaChat v0.58): digits push in from the right from 00:00, as on a
+# microwave, and nothing reaches the alarm until they make a time and are confirmed. Before, the
+# first digit set the alarm at once, so typing 7 over 7:00 AM showed 12:07 AM.
+nets-clear
+wait-text "HOME" 30000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+# 7 on the last row adds an alarm (7:00, weekdays) and starts typing: 00:07, not yet set.
+press 7
+wait-text "00:07" 3000
+expect-text "ENTER SETS 12:07 AM"
+expect-text "DEL UNDO"
+expect-nvs "alarms	blob:01070001"
+shot alarm-typing-7.png
+expect-no-clipping
+# 3: 00:73 is no time yet, and says to keep going.
+press 3
+wait-text "00:73" 3000
+expect-text "KEEP TYPING"
+# 0: 07:30, and Enter sets it.
+press 0
+wait-text "07:30" 3000
+expect-text "ENTER SETS 7:30 AM"
+expect-nvs "alarms	blob:01070001"
+press enter
+wait-text "7:30 AM" 3000
+expect-no-text "07:30"
+expect-nvs "alarms	blob:01071e01"
+# Four digits that make no time: red, the alarm unchanged, and the cursor can't leave it.
+type "2573"
+wait-text "25:73" 3000
+expect-text "NOT A TIME"
+shot alarm-typing-invalid.png
+expect-no-clipping
+press down
+wait 300
+expect-text "25:73"
+expect-nvs "alarms	blob:01071e01"
+# Del takes back one digit at a time; with none left, the alarm shows its time again.
+press del
+wait-text "02:57" 3000
+press del del del
+wait-text "7:30 AM" 3000
+expect-text "DEL DELETE"
+expect-nvs "alarms	blob:01071e01"
+# Four digits that make a time set it on the fourth: 1945 is 7:45 PM.
+type "1945"
+wait-text "7:45 PM" 3000
+expect-nvs "alarms	blob:01132d01"
+# Digits typed on a switch type the time too.
+press right
+wait 300
+type "0615"
+wait-text "6:15 AM" 3000
+expect-nvs "alarms	blob:01060f01"
+report alarm typing done

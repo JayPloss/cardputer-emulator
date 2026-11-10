@@ -16,8 +16,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
+FRENCH = {'french', 'french-keyboard'}  # Run on a French build.
 NEEDS_CARD = {'card-book', 'boot-skip', 'contain', 'stress-apps'}
-ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-noclock', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401']
+ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401']
 
 
 def build(tag='current', extra=()):
@@ -62,14 +63,16 @@ def main():
     names = sys.argv[1:] or ALL
     build()
     failed = 0
-    if 'french' in names:
-        names.remove('french')
+    french = [name for name in names if name in FRENCH]
+    if french:
+        names = [name for name in names if name not in FRENCH]
         # A French device, built with the language flag.
         build('french', ['DEVICE_DEFS=-DSUPACHAT_LANGUAGE_FR=1 -DSUPACHAT_DEVICE_NAME="\\"Test\\"" -DSUPACHAT_DEVICE_ID="\\"test\\""'])
-        done = run('french', tag='french')
+    for name in french:
+        done = run(name, tag='french')
         ok = done.returncode == 0
         failed += 0 if ok else 1
-        print(f'french: {"PASS" if ok else "FAIL"}')
+        print(f'{name}: {"PASS" if ok else "FAIL"}')
         if not ok:
             print('\n'.join(line for line in done.stdout.splitlines() if 'FAILED' in line or 'CRASH' in line or '[screen]' in line))
     # Scenarios run side by side: they share nothing but the CPU, and the virtual clock waits little.
