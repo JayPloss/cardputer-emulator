@@ -214,6 +214,12 @@ int runScenario() {
       // Takes RAM until this much is left, as a misbehaving system would, to test containment.
       const size_t leave = atol(rest.c_str());
       while (heapFree() > leave + 2048) if (!deviceAlloc(1024, "squeeze")) break;
+    } else if (command == "flaky-alloc") {
+      // flaky-alloc <task> <every>: refuse every Nth allocation on that task; "flaky-alloc off" stops it.
+      char task[32] = ""; int every = 0;
+      if (rest == "off") emu::setFlakyAllocations("", 0);
+      else if (sscanf(rest.c_str(), "%31s %d", task, &every) == 2) emu::setFlakyAllocations(task, every);
+      else return fail("flaky-alloc needs a task and a number");
     } else if (command == "report") { heapReport(rest.c_str()); powerReport();
       if (os::snapshot) { char text[600]; { emu::HostScope host; os::snapshot(text, sizeof(text)); } printf("[os] %s\n", text); } stackReport(); printf("[audio] %.1f s played, %d underruns\n", audioSeconds(), audioUnderruns()); }
     else return fail("unknown command " + command);

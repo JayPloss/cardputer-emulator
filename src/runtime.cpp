@@ -173,6 +173,17 @@ void *createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void
 }
 
 bool inHostScope();
+namespace {
+std::string flakyTask;
+std::atomic<int> flakyEvery{0};
+std::atomic<int> flakyCount{0};
+}  // namespace
+void setFlakyAllocations(const char *task, int every) { flakyTask = task; flakyCount = 0; flakyEvery = every; }
+bool flakyRefusal() {
+  const int every = flakyEvery.load();
+  if (every <= 0 || !currentTask || currentTask->name != flakyTask) return false;
+  return ++flakyCount % every == 0;
+}
 void *currentTaskHandle() { return inHostScope() ? nullptr : currentTask; }
 
 void stackReport() {

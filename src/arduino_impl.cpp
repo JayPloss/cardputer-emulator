@@ -391,11 +391,75 @@ File File::openNextFile() {
   return SD.open(child.c_str(), FILE_READ);
 }
 
+String File::getNextFileName(bool *isDirectory) {
+  if (isDirectory) *isDirectory = false;
+  if (!state_ || !state_->dir) return String();
+  std::string child;
+  bool directory = false;
+  {
+    emu::HostScope host;
+    while (dirent *entry = readdir(state_->dir)) {
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+      // The run's card is links to the real files; FAT's readdir gives the target's type.
+      struct stat info{};
+      if (stat((state_->hostPath + "/" + entry->d_name).c_str(), &info) != 0) continue;
+      if (!S_ISDIR(info.st_mode) && !S_ISREG(info.st_mode)) return String();  // as the core does
+      directory = S_ISDIR(info.st_mode);
+      child = state_->cardPath + "/" + entry->d_name;
+      break;
+    }
+  }
+  if (child.empty()) return String();
+  if (isDirectory) *isDirectory = directory;
+  // Built in the caller's task, as the core builds it: a refused allocation gives an empty String.
+  return String(child.c_str());
+}
+
+namespace {
+struct CardDir { DIR *host; void *block; std::string hostPath; dirent entry; };
+}  // namespace
+
+extern "C" DIR *emu_opendir(const char *path) {
+  if (strncmp(path, "/sd/", 4) != 0 && strcmp(path, "/sd") != 0) { emu::HostScope host; return ::opendir(path); }
+  void *block = malloc(model::kOpenDirBytes);  // charged to the calling task, and refusable, as on the device
+  if (!block) { errno = ENOMEM; return nullptr; }
+  emu::HostScope host;
+  auto *dir = new CardDir{nullptr, block, hostPath(path + 3), {}};
+  dir->host = ::opendir(dir->hostPath.c_str());
+  if (!dir->host) { emu::deviceFree(block); delete dir; return nullptr; }
+  return reinterpret_cast<DIR *>(dir);
+}
+
+extern "C" struct dirent *emu_readdir(DIR *handle) {
+  emu::HostScope host;
+  auto *dir = reinterpret_cast<CardDir *>(handle);
+  while (dirent *entry = ::readdir(dir->host)) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;  // FAT's root has none; vfs_fat skips them
+    dir->entry = *entry;
+    // The run's card is links to the real files; FAT reports the target's type.
+    struct stat info{};
+    if (stat((dir->hostPath + "/" + entry->d_name).c_str(), &info) == 0) dir->entry.d_type = S_ISDIR(info.st_mode) ? DT_DIR : DT_REG;
+    return &dir->entry;
+  }
+  return nullptr;
+}
+
+extern "C" int emu_closedir(DIR *handle) {
+  auto *dir = reinterpret_cast<CardDir *>(handle);
+  if (!dir) return -1;
+  void *block = dir->block;
+  { emu::HostScope host; ::closedir(dir->host); delete dir; }
+  emu::deviceFree(block);
+  return 0;
+}
+
 bool SDClass::begin(int, SPIClass &, uint32_t) {
   struct stat info{};
   return stat(emu::options.card, &info) == 0;
 }
 File SDClass::open(const char *path, const char *mode) {
+  // A String whose allocation failed hands over a null path; the core refuses it (VFSImpl::open: "does not start with /").
+  if (!path || path[0] != '/') return File();
   // On the device, libc allocates an open file's memory through malloc, and its free goes straight
   // to the heap, past any --wrap (a real boot loop came from that). So: in by malloc, out directly.
   void *block = malloc(model::kOpenFileBytes);
@@ -423,9 +487,10 @@ File SDClass::open(const char *path, const char *mode) {
   result.state_ = state;
   return result;
 }
-bool SDClass::exists(const char *path) { emu::HostScope host; struct stat info{}; return stat(hostPath(path).c_str(), &info) == 0; }
-bool SDClass::remove(const char *path) { emu::HostScope host; maybeCut("remove", path); return ::remove(hostPath(path).c_str()) == 0; }
+bool SDClass::exists(const char *path) { if (!path || path[0] != '/') return false; emu::HostScope host; struct stat info{}; return stat(hostPath(path).c_str(), &info) == 0; }
+bool SDClass::remove(const char *path) { if (!path || path[0] != '/') return false; emu::HostScope host; maybeCut("remove", path); return ::remove(hostPath(path).c_str()) == 0; }
 bool SDClass::rename(const char *from, const char *to) {
+  if (!from || !to || from[0] != '/' || to[0] != '/') return false;
   emu::HostScope host;
   maybeCut("rename", from);
   // FAT refuses to rename onto an existing name.

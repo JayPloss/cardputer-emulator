@@ -56,6 +56,8 @@ constexpr unsigned kTcpWindowBytes = 5760;
 
 // ESTIMATE: an open file: FATFS FIL with its per-file 4 KB sector cache, plus a stdio stream.
 constexpr unsigned kOpenFileBytes = 4096 + 600;
+// ESP-IDF's vfs_fat_opendir: a vfs_fat_dir_t, an FF_DIR plus a struct dirent. ESTIMATE from the struct sizes.
+constexpr unsigned kOpenDirBytes = 320;
 constexpr unsigned kSdBytesPerSecond = 2000000;
 
 // ESTIMATE: CPU per MP3 frame. Helix takes about 12% of 240 MHz for 128 kbps at 44.1 kHz stereo.

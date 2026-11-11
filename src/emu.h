@@ -36,6 +36,9 @@ void heapOwners(char *out, size_t size);
 void *createTask(void (*fn)(void *), const char *name, uint32_t stackBytes, void *arg, int priority, int core, void *heapBlock = nullptr);
 [[noreturn]] void deleteCurrentTask();
 void stackReport();
+// Momentary refusals on one task, every Nth allocation: the heap dipping while Wi-Fi scans away from home.
+void setFlakyAllocations(const char *task, int every);
+bool flakyRefusal();
 void *currentTaskHandle();  // Null on host threads and in host scopes: they own nothing.
 
 // Prints a crash report in the shape of the device's core dump and ends the run.

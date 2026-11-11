@@ -1,0 +1,21 @@
+# Away from home, the heap dips for a moment while Wi-Fi scans, and the books list task gets a refused
+# allocation now and then. The list must still be the card's whole list, or say it couldn't read it:
+# never a short list, never a crash. (Origin 2026-11-11: Julien's and Albie's devices showed only some
+# books offline, and Julien's none after a reboot.) Needs the test card (CARD) with its 8 books.
+wifi off
+wait-text "HOME" 50000
+flaky-alloc library 15
+press 3
+wait-text "Harry Potter 4" 15000
+expect-text "Stinky Dragon - Extras"
+expect-no-text "CARD NOT READ"
+report listed
+press down down down down down down down down
+wait 500
+expect-text "Season 3"
+press enter
+wait-text "Ep" 15000
+expect-no-text "CARD NOT READ"
+expect-no-text "NOT ON CARD"
+report chapters listed
+flaky-alloc off

@@ -65,7 +65,7 @@ wait 400
 press left
 wait 300
 press enter
-wait-text "v0.58" 3000
+wait-text "v0.59" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4

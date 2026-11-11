@@ -27,6 +27,8 @@ class File : public Stream {
   void close();
   bool isDirectory();
   File openNextFile();
+  // The core's readdir-only listing: no entry is opened, only the name's String is allocated.
+  String getNextFileName(bool *isDirectory = nullptr);
   const char *name();
   const char *path();
   struct State;

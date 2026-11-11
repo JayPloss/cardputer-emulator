@@ -183,13 +183,18 @@ using emu::useHost;
 // The allocator proper. The firmware's OS ledger, when the build has one, sits on top of
 // these (its __wrap_ functions replace the weak ones here); older firmware calls them directly.
 extern "C" {
-void *emuArenaMalloc(size_t bytes) { return useHost() ? __real_malloc(bytes) : arenaAlloc(bytes); }
+void *emuArenaMalloc(size_t bytes) {
+  if (useHost()) return __real_malloc(bytes);
+  if (emu::flakyRefusal()) return nullptr;
+  return arenaAlloc(bytes);
+}
 void emuArenaFree(void *p) {
   if (!p) return;
   if (inArena(p)) arenaFree(p); else __real_free(p);
 }
 void *emuArenaCalloc(size_t count, size_t size) {
   if (useHost()) return __real_calloc(count, size);
+  if (emu::flakyRefusal()) return nullptr;
   void *p = arenaAlloc(count * size);
   if (p) memset(p, 0, count * size);
   return p;
