@@ -4,7 +4,7 @@ report at HOME
 press 3
 wait-text "Stinky" 30000
 report book list
-press down down down down
+press down down down down down down
 press enter
 wait-text "Welcome to Boulderay" 30000
 report chapter list
@@ -43,7 +43,7 @@ reboot
 wait-text "HOME" 60000
 press 3
 wait-text "Stinky" 30000
-press down down down down
+press down down down down down down
 press enter
 wait-text "Welcome to Boulderay" 30000
 show

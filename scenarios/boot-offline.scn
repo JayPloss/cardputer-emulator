@@ -4,7 +4,7 @@ wait-text "HOME" 12000
 report at HOME
 press 3
 wait-text "Stinky" 20000
-press down down down down
+press down down down down down down
 press enter
 wait-text "Welcome" 20000
 press enter

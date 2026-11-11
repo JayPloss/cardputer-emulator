@@ -68,7 +68,7 @@ $(LIBBUILD)/Keyboard.o: $(KEYBOARD) shim/keyboard_prelude.h
 	sed -e '/IOMatrix.h/d' -e '/TCA8418.h/d' -e '/M5Unified.h/d' -e 's#"Keyboard.h"#<utility/Keyboard/Keyboard.h>#' -e 's#"../common.h"#<utility/common.h>#' -e 's#"KeyboardReader/KeyboardReader.h"#<utility/Keyboard/KeyboardReader/KeyboardReader.h>#' $< > $(LIBBUILD)/Keyboard_gen.cpp
 	g++ $(CXXFLAGS) -include shim/keyboard_prelude.h -c $(LIBBUILD)/Keyboard_gen.cpp -o $@
 $(LIBBUILD)/emu/%.o: src/%.cpp src/emu.h src/device_model.h $(wildcard shim/*.h) ; @mkdir -p $(@D); g++ $(CXXFLAGS) -c $< -o $@
-$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/os.h $(FIRMWARE)/include/shared_text.h $(FIRMWARE)/include/media_player.h $(FIRMWARE)/include/music_library.h) ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
+$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/*.h) ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 $(BUILD)/main_emu.o: src/main.cpp src/device_model.h src/emu.h ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 
 # The candidate fonts on real M5GFX: tools/font-specimen.py runs this and makes the contact sheet.

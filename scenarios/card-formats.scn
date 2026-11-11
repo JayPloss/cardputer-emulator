@@ -1,0 +1,76 @@
+# One MP3 of each kind real libraries hold, played in turn from one card folder: ID3v2 tags (with cover art, with
+# bytes that look like a frame, v2.4 with a footer), junk after a tag, VBR with a Xing header, MPEG 2 at 22 kHz mono,
+# tags at the end. Files the decoder can't play must say why: MPEG 2.5, MP2, not audio. The card comes from
+# tools/formats-card.sh (check.py makes it when missing).
+wait-text "HOME" 60000
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "Formats" 30000
+press down
+press enter
+wait-text "cbr128" 30000
+press enter
+wait-text "cbr128-plain" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "cbr128-plain"
+report cbr128-plain
+press right
+wait-text "vbr-v0-48k-xing" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "vbr-v0-48k-xing"
+report vbr-v0-48k-xing
+press right
+wait-text "mpeg2-22k-mono" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "mpeg2-22k-mono"
+report mpeg2-22k-mono
+press right
+wait-text "8-12 KHZ MP3: UNSUPPORTED" 15000
+expect-text "mpeg25-8k-mono"
+report mpeg25-8k-mono refused
+press right
+wait-text "MP2, NOT MP3" 15000
+expect-text "mp2"
+report mp2 refused
+press right
+wait-text "vbr-cover-art" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "vbr-cover-art"
+report vbr-cover-art
+press right
+wait-text "false-sync-tag" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "false-sync-tag"
+report false-sync-tag
+press right
+wait-text "id3v24-footer" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "id3v24-footer"
+report id3v24-footer
+press right
+wait-text "junk-after-tag" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "junk-after-tag"
+report junk-after-tag
+press right
+wait-text "tail-tags" 15000
+wait 3000
+expect-text "PLAYING"
+expect-text "tail-tags"
+report tail-tags
+press right
+wait-text "NOT AN MP3" 15000
+expect-text "not-audio"
+report not-audio refused
+press right
+wait 1000
+expect-underruns 0
+report end

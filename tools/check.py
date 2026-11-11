@@ -18,7 +18,8 @@ CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
 FRENCH = {'french', 'french-keyboard'}  # Run on a French build.
 NEEDS_CARD = {'card-book', 'boot-skip', 'contain', 'stress-apps'}
-ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401']
+OWN_CARD = {'card-formats': ROOT / 'run' / 'formats-card'}  # made by tools/formats-card.sh
+ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401']
 
 
 def build(tag='current', extra=()):
@@ -27,7 +28,10 @@ def build(tag='current', extra=()):
 
 def run(name, tag='current', time_scale=SCALE, sanitizer=''):
     folder = ROOT / 'run' / name
-    subprocess.run([ROOT / 'tools/seed.sh', folder, CARD], check=True)
+    card = OWN_CARD.get(name, CARD)
+    if name in OWN_CARD and not Path(card).is_dir():
+        subprocess.run([ROOT / 'tools/formats-card.sh', card], check=True, capture_output=True)
+    subprocess.run([ROOT / 'tools/seed.sh', folder, str(card)], check=True)
     binary = ROOT / 'build' / f'{tag}{"-" + sanitizer if sanitizer else ""}' / 'cardputer-emulator'
     first = (ROOT / 'scenarios' / f'{name}.scn').read_text().split('\n', 1)[0]
     if first.startswith('# time-scale '):
