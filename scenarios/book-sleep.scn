@@ -1,0 +1,45 @@
+# time-scale 4
+# The sleep timer: a book started at bedtime gets 30 minutes; T steps 45, 60, off, 15. At the end
+# the book fades out and pauses with its place saved; Enter at bedtime starts it again with 30.
+wait-text "HOME" 60000
+clock 2026-11-12 20:00:00
+press 3
+wait-text "Stinky" 30000
+press down down down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+press enter
+wait-text "PLAYING" 15000
+wait-text "SLEEP 2" 3000
+shot sleep-bedtime.png
+expect-no-clipping
+press t
+wait-text "SLEEP 4" 3000
+press t
+wait-text "SLEEP 59:5" 3000
+press t
+wait 1500
+# The footer names T SLEEP; the timer itself is "SLEEP" and a time.
+expect-no-text "SLEEP 5"
+expect-text "PLAYING"
+press t
+wait-text "SLEEP 14:5" 3000
+wait 870000
+# The big clock has taken over by now, and shows the timer too.
+expect-text "SLEEP 0:"
+expect-underruns 0
+shot sleep-idle-clock.png
+expect-no-clipping
+wait 40000
+expect-no-text "SLEEP 0:"
+# The first key brings the player back; it is paused, its place saved.
+press a
+wait-text "PAUSED" 3000
+expect-file books/Stinky Dragon - Season 1 The Infinights/.place "001 Ep 1 Welcome to Boulderay.mp3"
+press enter
+wait-text "PLAYING" 5000
+wait-text "SLEEP 29:5" 3000
+wait 20000
+# The pause itself counts once: the speaker can't tell a pause from running dry.
+expect-underruns 1
+report sleep timer done

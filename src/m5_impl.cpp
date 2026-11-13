@@ -220,7 +220,7 @@ void startSpeaker() {
 }
 }  // namespace
 
-void EmuDisplay::setBrightness(uint8_t value) { emu::powerSetBrightness(value); }
+void EmuDisplay::setBrightness(uint8_t value) { brightness_ = value; emu::powerSetBrightness(value); }
 void EmuSpeaker::setVolume(uint8_t value) { emu::powerSetVolume(value); }
 bool EmuSpeaker::begin() { emu::HostScope host; startSpeaker(); return true; }
 void EmuSpeaker::end() { stop(); }

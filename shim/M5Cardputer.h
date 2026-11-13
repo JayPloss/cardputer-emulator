@@ -38,10 +38,14 @@ class EmuCanvas : public EmuCanvasBase {
 #define M5Canvas EmuCanvas
 
 class EmuDisplay : public EmuCanvas {
+  uint8_t brightness_ = 127;
+
  public:
   void setup();
   void setRotation(uint8_t) {}
   void setBrightness(uint8_t value);
+  // As LGFXBase: the last value set, from 127 until the firmware sets one.
+  uint8_t getBrightness() const { return brightness_; }
   void present();
   // Drawing directly to the panel (the splash) shows at once.
   size_t write(uint8_t c) override { const size_t written = EmuCanvas::write(c); commitText(); present(); return written; }

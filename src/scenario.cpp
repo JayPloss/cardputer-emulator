@@ -193,6 +193,9 @@ int runScenario() {
       std::stringstream contents;
       contents << target.rdbuf();
       if (!target || contents.str().find(wanted) == std::string::npos) return fail(path + " does not hold \"" + wanted + "\": [" + contents.str() + "]");
+    } else if (command == "remove-file") {
+      // A file taken off the card, as by someone with a PC, while the device runs.
+      if (std::remove((std::string(options.card) + "/" + rest).c_str()) != 0) return fail("could not remove " + rest);
     } else if (command == "expect-file-gone") {
       if (std::ifstream(std::string(options.card) + "/" + rest)) return fail(rest + " still exists");
     } else if (command == "expect-audio") {

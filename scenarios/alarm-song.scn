@@ -1,0 +1,79 @@
+# An alarm that plays a song from the card: chosen from the card's music on its SOUND column, it
+# plays instead of the beeps when the alarm rings, again and again until Enter stops it.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+clock 2026-11-09 06:57:00
+type "0700"
+wait-text "7:00 AM" 3000
+press right
+wait 300
+press right
+wait 300
+press right
+wait-text "SOUND: BEEPS" 3000
+expect-text "ENTER CHOOSE SONG"
+shot alarm-sound-column.png
+expect-no-clipping
+# Past the last column: a bump.
+press right
+wait 300
+expect-text "SOUND: BEEPS"
+# Back from the list without choosing changes nothing.
+press enter
+wait-text "BEEPS (NO SONG)" 20000
+wait-text "Aaa Test Album" 20000
+shot alarm-song-albums.png
+expect-no-clipping
+button
+wait-text "SOUND: BEEPS" 3000
+press enter
+wait-text "Aaa Test Album" 20000
+press down
+wait 300
+press enter
+wait-text "Song 1" 20000
+press down
+wait 300
+press enter
+wait-text "SOUND: 02 Song 2" 5000
+shot alarm-song-set.png
+expect-no-clipping
+expect-nvs "alarm_snd0"
+press esc
+wait-text "HOME" 3000
+# Resets the count: key clicks and the startup tune.
+expect-tones 0 100000
+# It rings at 7:00. The beeps may sound while the song starts, then only the song.
+wait-text "SNOOZE" 200000
+# The radio has to go off first: about 6 seconds of beeps on this model.
+wait 9000
+expect-tones 1 40
+wait 20000
+expect-tones 0 0
+# 8-second song: 20 seconds means it went round again.
+expect-audio 18
+expect-underruns 0
+shot alarm-song-ringing.png
+press enter
+wait 1500
+expect-text "HOME"
+expect-no-text "SNOOZE"
+wait 5000
+expect-tones 0 0
+# The song gone from the card: the next day's alarm rings with the beeps instead.
+remove-file music/Aaa Test Album/02 Song 2.mp3
+clock 2026-11-10 06:59:50
+wait-text "SNOOZE" 30000
+wait 15000
+expect-tones 20
+press enter
+wait 1500
+expect-text "HOME"
+report alarm song done

@@ -1,0 +1,44 @@
+# time-scale 10
+# The big clock: two minutes without a key turns any app into the 24-hour time, the date and the
+# next alarm, dimmer at bedtime. The first key only brings the app back; a key typed then does nothing.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+type "0700"
+wait-text "7:00 AM" 3000
+press esc
+wait-text "HOME" 3000
+# Thursday evening, bedtime.
+clock 2026-11-12 21:00:00
+wait 110000
+expect-text "HOME"
+expect-no-text "ALARM 07:00"
+wait-text "ALARM 07:00" 15000
+expect-text "THURSDAY 12 NOV"
+expect-text "IN 9 H"
+expect-text "21:01"
+shot idle-clock-night.png
+expect-no-clipping
+# A key brings HOME back and is used for nothing else: 1 would have opened chat.
+press 1
+wait 500
+expect-text "HOME"
+expect-no-text "ALARM 07:00"
+# The morning, past the alarm's ring (Friday 07:00 rang): the next is Monday, so it names the day.
+clock 2026-11-14 10:00:00
+wait 125000
+wait-text "ALARM 07:00" 5000
+expect-text "SATURDAY 14 NOV"
+expect-text "MONDAY"
+shot idle-clock-day.png
+expect-no-clipping
+press enter
+wait 500
+expect-text "HOME"
+report idle clock done

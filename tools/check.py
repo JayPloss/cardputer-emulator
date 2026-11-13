@@ -17,9 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
 FRENCH = {'french', 'french-keyboard'}  # Run on a French build.
-NEEDS_CARD = {'card-book', 'boot-skip', 'contain', 'stress-apps', 'books-flaky'}
+NEEDS_CARD = {'card-book', 'book-sleep', 'boot-skip', 'contain', 'stress-apps', 'books-flaky'}
 OWN_CARD = {'card-formats': ROOT / 'run' / 'formats-card'}  # made by tools/formats-card.sh
-ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401']
+ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401', 'clock-idle', 'book-sleep', 'alarm-song']
 
 
 def build(tag='current', extra=()):
