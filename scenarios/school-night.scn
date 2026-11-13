@@ -1,0 +1,50 @@
+# time-scale 4
+# School night on a child's device: a book playing at 21:20, Sunday to Thursday, gets a banner and a
+# chime, and its sleep timer ends at 21:30, when it fades and pauses. It can be started again, with
+# the bedtime 30 minutes. A Friday night has no stop at 21:30, only the bedtime timer.
+wait-text "HOME" 60000
+# Thursday.
+clock 2026-11-12 21:18:30
+press 3
+wait-text "Stinky" 30000
+press down down down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+press enter
+wait-text "PLAYING" 15000
+wait-text "SLEEP 29:" 5000
+# Resets the count: key clicks and the startup tune.
+expect-tones 0 100000
+wait-text "SCHOOL NIGHT" 90000
+expect-tones 2 2
+wait-text "SLEEP 9:" 3000
+shot school-night-banner.png
+expect-no-clipping
+wait-text "BOOK STOPS AT 21:30" 5000
+shot school-night-banner-2.png
+expect-no-clipping
+# The big clock takes over meanwhile; a key brings the player back once it has stopped.
+wait 600000
+press a
+wait-text "PAUSED" 5000
+expect-file books/Stinky Dragon - Season 1 The Infinights/.place "001 Ep 1 Welcome to Boulderay.mp3"
+# Started again after 21:30: it plays, with the bedtime timer and no second warning.
+press enter
+wait-text "PLAYING" 5000
+wait-text "SLEEP 29:5" 3000
+expect-no-text "SCHOOL NIGHT"
+press s
+wait 1000
+# Friday: nothing at 21:20, the bedtime timer runs on.
+clock 2026-11-13 21:19:00
+press down down down down down down
+press enter
+wait-text "Welcome to Boulderay" 30000
+press enter
+wait-text "PLAYING" 15000
+wait-text "SLEEP 29:" 5000
+wait 90000
+expect-no-text "SCHOOL NIGHT"
+expect-no-text "BOOK STOPS"
+expect-text "SLEEP 2"
+report school night done
