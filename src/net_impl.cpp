@@ -61,7 +61,19 @@ int WiFiClass::hostByName(const char *, IPAddress &address) {
   address = IPAddress(203, 0, 113, 7);  // A documentation address; nothing connects to it.
   return 1;
 }
+extern "C" void *emuArenaMalloc(size_t bytes);
+// The Wi-Fi driver's own memory, which the stand-in doesn't use by itself: measured on Andrew's Cardputer
+// (v0.64, 2026-11-22) as free 79608 right after joining, where the emulator had 100944. Taken from the
+// device's heap at the first join and kept, as the driver keeps its buffers while the radio is on.
+constexpr size_t kWifiDriverBytes = 100944 - 79608;
+void *wifiDriverRam = nullptr;
+wl_status_t joinStandIn(const char *ssid, const char *password);
 wl_status_t WiFiClass::begin(const char *ssid, const char *password) {
+  const wl_status_t result = joinStandIn(ssid, password);
+  if (result == WL_CONNECTED && !wifiDriverRam) wifiDriverRam = emuArenaMalloc(kWifiDriverBytes);
+  return result;
+}
+wl_status_t joinStandIn(const char *ssid, const char *password) {
   emu::sleepMs(1000);
   emu::HostScope host;
   std::lock_guard<std::mutex> guard(netLock);
