@@ -188,6 +188,14 @@ int runScenario() {
       const uint32_t until = millis() + timeout;
       while (shown().find(wanted) == std::string::npos) {
         if (millis() >= until) return fail("screen never showed \"" + wanted + "\"");
+        // The start screen waits for a key once it's done (v0.64). A scenario waiting for anything past it
+        // presses Enter there, as a person would, and the log says so.
+        const std::string now = shown();
+        if (wanted.find("PRESS A KEY") == std::string::npos && wanted.find("APPUIE") == std::string::npos &&
+            (now.find("PRESS A KEY") != std::string::npos || now.find("APPUIE UNE TOUCHE") != std::string::npos)) {
+          printf("[scenario] start screen done: Enter pressed\n");
+          pressKey(namedKeys().at("enter"));
+        }
         sleepMs(20);
       }
     } else if (command == "expect-no-text") {
