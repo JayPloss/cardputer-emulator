@@ -220,6 +220,12 @@ int runScenario() {
       std::stringstream contents;
       contents << target.rdbuf();
       if (!target || contents.str().find(wanted) == std::string::npos) return fail(path + " does not hold \"" + wanted + "\": [" + contents.str() + "]");
+    } else if (command == "put-file") {
+      // put-file <path> "<text>": a file put on the card, as by card sync or a PC (\n in the text is a new line).
+      const auto quote = rest.find('"');
+      std::string text = rest.substr(quote + 1, rest.rfind('"') - quote - 1);
+      for (size_t at; (at = text.find("\\n")) != std::string::npos;) text.replace(at, 2, "\n");
+      std::ofstream(std::string(options.card) + "/" + rest.substr(0, quote - 1)) << text;
     } else if (command == "remove-file") {
       // A file taken off the card, as by someone with a PC, while the device runs.
       if (std::remove((std::string(options.card) + "/" + rest).c_str()) != 0) return fail("could not remove " + rest);

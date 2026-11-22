@@ -1,0 +1,54 @@
+# time-scale 1
+# A card folder's song list: songs with lyrics in cyan, a check in the right-hand gutter for each song on the
+# play list, Right adds one, Left takes it off (it doesn't go back), G0 goes back. Next and shuffle skip
+# unchecked songs; the list is kept on the card (.unchecked.txt).
+put-file music/Aaa Test Album/01 Song 1.lrc "[00:00.50]la la la\n[00:03.00]lo lo lo\n"
+wait-text "HOME" 60000
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+wait-text "LEFT REMOVE" 3000
+shot song-checks-all.png
+expect-no-clipping
+# Song 2 off the list: Left stays in the list.
+press down
+press left
+wait 500
+expect-text "02 Song 2"
+expect-file music/Aaa Test Album/.unchecked.txt "Song 2"
+shot song-checks-off.png
+# Right puts it back, Left takes it off again.
+press right
+wait 500
+expect-file-gone music/Aaa Test Album/.unchecked.txt
+press left
+wait 500
+expect-file music/Aaa Test Album/.unchecked.txt "Song 2"
+# Song 1 plays; when it ends the next is song 3, song 2 skipped.
+press up
+press enter
+wait-text "PLAYING" 20000
+wait-text "Song 3" 15000
+expect-no-text "Song 2"
+# G0 goes back a level from the list.
+press s
+wait-text "ON THE CARD" 5000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+button
+wait-text "ON THE CARD" 5000
+# A name too long for its row scrolls when selected (shots 1 s and 5 s in: different parts of the name).
+put-file music/Aaa Test Album/04 A song name much too long to fit on its row.mp3 "x"
+press enter
+wait-text "01 Song 1" 30000
+press up
+wait 1000
+shot song-checks-long-1.png
+wait 4000
+shot song-checks-long-2.png
+expect-no-clipping
