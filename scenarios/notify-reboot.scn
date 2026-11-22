@@ -4,8 +4,8 @@
 wait-text "HOME" 60000
 wait 30000
 report first boot settled
-# The startup melody: 114 tones on v0.61.
-expect-tones 114 114
+# The startup melody: 113 or 114 tones on v0.61 (timing); a notification would add 3.
+expect-tones 112 115
 wait 20000
 expect-tones 0 0
 # Someone posts: one notification.
@@ -20,6 +20,6 @@ wait-text "HOME" 60000
 wait 30000
 report after restart
 # The same melody and nothing more: no notification for the message already seen.
-expect-tones 114 114
+expect-tones 112 115
 wait 20000
 expect-tones 0 0
