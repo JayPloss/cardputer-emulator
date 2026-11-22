@@ -113,6 +113,8 @@ def sync_card():
     (card / 'music' / 'Andrew').mkdir(parents=True)
     entries = andrew_playlist()
     (card / 'music' / 'Andrew' / card_name(9, entries[1])).write_bytes(b'\xff\xfb' + bytes(4094))
+    # His third song, deleted on the device: on .deleted.txt, so the sync must not fetch it again.
+    (card / 'music' / 'Andrew' / '.deleted.txt').write_text(card_name(3, entries[2])[4:-4] + '\n')
     # A song since taken off his playlist: it goes to /music/.removed/Andrew, not deleted.
     (card / 'music' / 'Andrew' / STRAY).write_bytes(b'\xff\xfb' + bytes(4094))
     return entries
@@ -120,12 +122,13 @@ def sync_card():
 
 def check_sync_card(folder, entries):
     have = sorted(p.name for p in (folder / 'card' / 'music' / 'Andrew').iterdir())  # the renamed song is the seed's link
-    want = sorted(card_name(n, e) for n, e in enumerate(entries, 1))
+    want = sorted(card_name(n, e) for n, e in enumerate(entries, 1) if n != 3)  # the third was deleted on the device
     songs = [n for n in have if n.endswith('.mp3')]  # beside them: each song's .lrc or .nolrc
     problems = []
     if songs != want: problems.append(f'card has {songs}, playlist wants {want}')
     if any(n.startswith('.part') for n in have): problems.append('a .part file was left')
     for n, e in enumerate(entries, 1):
+        if n == 3: continue  # deleted on the device
         stem = card_name(n, e)[:-4]
         if not (folder / 'card' / 'music' / 'Andrew' / f'{stem}.lrc').exists() and not (folder / 'card' / 'music' / 'Andrew' / f'{stem}.nolrc').exists():
             problems.append(f'no lyrics file for {stem}')
@@ -141,6 +144,7 @@ def check_sync_card(folder, entries):
     if len(tones) < 30: problems.append(f'{len(tones)} ringtones on the card, the Sonneries playlist has 30')
     removed = folder / 'card' / 'music' / '.removed' / 'Andrew' / STRAY
     if not removed.exists(): problems.append(f'{STRAY} was not moved to /music/.removed/Andrew')
+    if (folder / 'card' / 'music' / 'Andrew' / card_name(3, entries[2])).exists(): problems.append('the song deleted on the device came back')
     return problems
 
 

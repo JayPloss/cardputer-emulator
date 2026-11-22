@@ -60,7 +60,7 @@ expect-text "PLAYING"
 report playing a synced song
 # Its lyrics came with it, shown when asked for: L turns them on (P in French). 40 s in, a line is on the screen
 # (check.py compares it with the card's .lrc).
-expect-text "L LYRICS"
+wait-text "L LYRICS" 7000
 press l
 wait 32000
 show

@@ -79,4 +79,33 @@ press right
 wait 2000
 expect-text "01 Song 1"
 expect-text "PLAYING"
+# Delete (D on an English device): asked first; another key cancels; Enter deletes and the next song plays.
+# The file goes to /music/.removed (recoverable) and its name to the folder's .deleted.txt.
+press s
+wait-text "ON THE CARD" 5000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+press down
+wait 300
+press enter
+wait-text "02 Song 2" 5000
+wait-text "PLAYING" 10000
+press d
+wait-text "DELETE THIS SONG FROM THE CARD?" 2000
+shot play-delete-ask.png
+expect-no-clipping
+press x
+wait 500
+expect-no-text "DELETE THIS SONG"
+expect-text "02 Song 2"
+press d
+wait-text "DELETE THIS SONG FROM THE CARD?" 2000
+press enter
+wait-text "03 Song 3" 5000
+wait-text "PLAYING" 10000
+expect-file-gone music/Aaa Test Album/02 Song 2.mp3
+expect-file music/.removed/Aaa Test Album/02 Song 2.mp3 ""
+expect-file music/Aaa Test Album/.deleted.txt "02 Song 2"
 report modes done
