@@ -1,6 +1,6 @@
 # time-scale 1
 # Card sync, as Andrew, against the real Navidrome: his playlist onto the card over Wi-Fi. The card
-# starts with one of his songs under a wrong number and the rest missing (check.py makes it and checks
+# starts with one of his songs under a wrong number, one taken off his list since, and the rest missing (check.py makes it and checks
 # the files after). A minute after boot the pass starts; STATUS shows it; HOME says what came in;
 # then a song that came down plays from the card. Real sockets: this runs at 1x.
 wait-text "HOME" 60000

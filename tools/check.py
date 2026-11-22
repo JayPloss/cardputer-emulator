@@ -47,14 +47,14 @@ def run(name, tag='current', time_scale=SCALE, sanitizer=''):
 def music_host():
     if os.environ.get('MUSIC_HOST'):
         return os.environ['MUSIC_HOST']
-    header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h'
+    header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/adv-cardputer-kidputer/firmware/include')) / 'music_secrets.h'
     match = re.search(r'SUPACHAT_MUSIC_HOST "([^"]+)"', header.read_text()) if header.exists() else None
     return match[1] if match else ''
 
 
 def andrew_playlist():
     import hashlib, json, secrets, urllib.parse, urllib.request
-    header = (Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h').read_text()
+    header = (Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/adv-cardputer-kidputer/firmware/include')) / 'music_secrets.h').read_text()
     found = re.search(r'defined\(SUPACHAT_DEVICE_ANDREW\)\n#define SUPACHAT_MUSIC_USER "[^"]*"\n#define SUPACHAT_MUSIC_PASSWORD "([^"]*)"', header)
     password = found[1] if found else ''
     def call(method, **params):
@@ -74,13 +74,18 @@ def card_name(number, entry):
     return f'{number:03d} {safe(entry["title"])} - {safe(entry["artist"].split(", ")[0])}.mp3'
 
 
+STRAY = '006 Taken Off The List - Nobody.mp3'
+
+
 def sync_card():
-    """Andrew's card before a sync: his second song under another number (to be renamed), the rest missing."""
+    """Andrew's card before a sync: his second song under another number (to be renamed), a song no longer on his list, the rest missing."""
     card = ROOT / 'run' / 'sync-card'
     subprocess.run(['rm', '-rf', str(card)], check=True)
     (card / 'music' / 'Andrew').mkdir(parents=True)
     entries = andrew_playlist()
     (card / 'music' / 'Andrew' / card_name(9, entries[1])).write_bytes(b'\xff\xfb' + bytes(4094))
+    # A song since taken off his playlist: it goes to /music/.removed/Andrew, not deleted.
+    (card / 'music' / 'Andrew' / STRAY).write_bytes(b'\xff\xfb' + bytes(4094))
     return entries
 
 
@@ -91,12 +96,14 @@ def check_sync_card(folder, entries):
     problems = []
     if songs != want: problems.append(f'card has {songs}, playlist wants {want}')
     if any(n.startswith('.part') for n in have): problems.append('a .part file was left')
+    removed = folder / 'card' / 'music' / '.removed' / 'Andrew' / STRAY
+    if not removed.exists(): problems.append(f'{STRAY} was not moved to /music/.removed/Andrew')
     return problems
 
 
 def server_reachable():
     # The address is in the same gitignored header the firmware builds with.
-    header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h'
+    header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/adv-cardputer-kidputer/firmware/include')) / 'music_secrets.h'
     match = re.search(r'SUPACHAT_MUSIC_HOST "([^":]+):(\d+)"', header.read_text()) if header.exists() else None
     if not match:
         return False
