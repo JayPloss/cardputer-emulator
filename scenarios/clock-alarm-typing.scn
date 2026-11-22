@@ -32,20 +32,19 @@ press enter
 wait-text "7:30 AM" 3000
 expect-no-text "07:30"
 expect-nvs "alarms	blob:01071e01"
-# Four digits that make no time: red, the alarm unchanged, and the cursor can't leave it.
+# A digit that can't lead to a time is refused as it's typed (Andrew typed 0,0,6,7 and saw 00:67,
+# 2026-11-21): 2,5,7 is 02:57, and the 3 after it (25:73) bumps and changes nothing.
 type "2573"
-wait-text "25:73" 3000
-expect-text "NOT A TIME"
-shot alarm-typing-invalid.png
+wait-text "02:57" 3000
+expect-no-text "25:73"
+expect-text "ENTER SETS 2:57 AM"
+shot alarm-typing-refused.png
 expect-no-clipping
-press down
-wait 300
-expect-text "25:73"
 expect-nvs "alarms	blob:01071e01"
 # Del takes back one digit at a time; with none left, the alarm shows its time again.
 press del
-wait-text "02:57" 3000
-press del del del
+wait-text "00:25" 3000
+press del del
 wait-text "7:30 AM" 3000
 expect-text "DEL DELETE"
 expect-nvs "alarms	blob:01071e01"

@@ -8,6 +8,7 @@ microSD; without it the scenarios that need audio are skipped and say so.
 import os
 import re
 import socket
+import time
 import subprocess
 import sys
 from multiprocessing.pool import ThreadPool
@@ -52,6 +53,33 @@ def music_host():
     return match[1] if match else ''
 
 
+def andrew_call_url(host, method, **params):
+    import hashlib, secrets, urllib.parse
+    header = (Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/adv-cardputer-kidputer/firmware/include')) / 'music_secrets.h').read_text()
+    found = re.search(r'defined\(SUPACHAT_DEVICE_ANDREW\)\n#define SUPACHAT_MUSIC_USER "[^"]*"\n#define SUPACHAT_MUSIC_PASSWORD "([^"]*)"', header)
+    password = found[1] if found else ''
+    salt = secrets.token_hex(6)
+    query = dict(u='andrew', t=hashlib.md5((password + salt).encode()).hexdigest(), s=salt, v='1.16.1', c='cardputer', f='json', **params)
+    return f'http://{host}/rest/{method}?{urllib.parse.urlencode(query)}'
+
+
+def warm_proxy():
+    """Ask the proxy ahead of the run everything the device will ask, so it answers at once."""
+    import json, urllib.request
+    via = f'127.0.0.1:{PROXY_PORT}'
+    for _ in range(50):
+        try:
+            socket.create_connection(('127.0.0.1', PROXY_PORT), timeout=1).close(); break
+        except OSError:
+            time.sleep(0.2)
+    get = lambda method, **p: json.load(urllib.request.urlopen(andrew_call_url(via, method, **p), timeout=120))['subsonic-response']
+    lists = get('getPlaylists').get('playlists', {}).get('playlist', [])
+    for playlist in lists:
+        for entry in get('getPlaylist', id=playlist['id'])['playlist'].get('entry', []):
+            if playlist['name'] == 'Andrew':
+                get('getLyricsBySongId', id=entry['id'])
+
+
 def andrew_playlist():
     import hashlib, json, secrets, urllib.parse, urllib.request
     header = (Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/adv-cardputer-kidputer/firmware/include')) / 'music_secrets.h').read_text()
@@ -75,6 +103,7 @@ def card_name(number, entry):
 
 
 STRAY = '006 Taken Off The List - Nobody.mp3'
+PROXY_PORT = 20453  # tools/navidrome-proxy.py, for card-sync only
 
 
 def sync_card():
@@ -92,10 +121,24 @@ def sync_card():
 def check_sync_card(folder, entries):
     have = sorted(p.name for p in (folder / 'card' / 'music' / 'Andrew').iterdir())  # the renamed song is the seed's link
     want = sorted(card_name(n, e) for n, e in enumerate(entries, 1))
-    songs = [n for n in have if not n.startswith('.')]
+    songs = [n for n in have if n.endswith('.mp3')]  # beside them: each song's .lrc or .nolrc
     problems = []
     if songs != want: problems.append(f'card has {songs}, playlist wants {want}')
     if any(n.startswith('.part') for n in have): problems.append('a .part file was left')
+    for n, e in enumerate(entries, 1):
+        stem = card_name(n, e)[:-4]
+        if not (folder / 'card' / 'music' / 'Andrew' / f'{stem}.lrc').exists() and not (folder / 'card' / 'music' / 'Andrew' / f'{stem}.nolrc').exists():
+            problems.append(f'no lyrics file for {stem}')
+    first = folder / 'card' / 'music' / 'Andrew' / f'{card_name(1, entries[0])[:-4]}.lrc'
+    screen = (folder / 'log.txt').read_text(errors='replace').rsplit('[screen]', 1)[-1] if (folder / 'log.txt').exists() else ''
+    if first.exists():
+        sung = [re.sub(r'^\[[^\]]*\]', '', l).strip() for l in first.read_text().splitlines()]
+        if not any(len(l) > 3 and l.split()[0] in screen for l in sung):
+            problems.append('no line of the first song\'s lyrics on the screen 40 s in')
+    else:
+        problems.append('the first song has no .lrc')
+    tones = list((folder / 'card' / 'music' / 'Sonneries').glob('*.mp3')) if (folder / 'card' / 'music' / 'Sonneries').is_dir() else []
+    if len(tones) < 30: problems.append(f'{len(tones)} ringtones on the card, the Sonneries playlist has 30')
     removed = folder / 'card' / 'music' / '.removed' / 'Andrew' / STRAY
     if not removed.exists(): problems.append(f'{STRAY} was not moved to /music/.removed/Andrew')
     return problems
@@ -148,8 +191,17 @@ def main():
         names = [name for name in names if name != 'card-sync']
         if runnable('card-sync'):
             entries = sync_card()
-            build('andrew', [f'DEVICE_DEFS=-DSUPACHAT_DEVICE_ANDREW -DSUPACHAT_DEVICE_NAME="\\"Andrew\\"" -DSUPACHAT_DEVICE_ID="\\"andrew\\"" -DSUPACHAT_MUSIC_HOST_OVERRIDE="\\"{music_host()}\\""'])
-            done = run('card-sync', tag='andrew')
+            # The real Navidrome through a local proxy that serves the song files from this machine's copies.
+            proxy = subprocess.Popen(['python3', '-I', str(ROOT / 'tools' / 'navidrome-proxy.py'), str(PROXY_PORT), music_host()],
+                                     stderr=open(ROOT / 'run' / 'card-sync-proxy.log', 'w'))
+            warm_proxy()
+            # make doesn't see a change of flags: start this build clean, so the address below is the one compiled in.
+            subprocess.run(['rm', '-rf', str(ROOT / 'build' / 'andrew')], check=True)
+            build('andrew', [f'DEVICE_DEFS=-DSUPACHAT_DEVICE_ANDREW -DSUPACHAT_DEVICE_NAME="\\"Andrew\\"" -DSUPACHAT_DEVICE_ID="\\"andrew\\"" -DSUPACHAT_MUSIC_HOST_OVERRIDE="\\"127.0.0.1:{PROXY_PORT}\\""'])
+            try:
+                done = run('card-sync', tag='andrew')
+            finally:
+                proxy.terminate()
             problems = [] if done.returncode else check_sync_card(ROOT / 'run' / 'card-sync', entries)
             ok = done.returncode == 0 and not problems
             failed += 0 if ok else 1

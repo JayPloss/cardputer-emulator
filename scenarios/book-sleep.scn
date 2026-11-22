@@ -19,7 +19,7 @@ press t
 wait-text "SLEEP 59:5" 3000
 press t
 wait 1500
-# The footer names T SLEEP; the timer itself is "SLEEP" and a time.
+# The footer names T TIMER; the timer itself is "SLEEP" and a time.
 expect-no-text "SLEEP 5"
 expect-text "PLAYING"
 press t

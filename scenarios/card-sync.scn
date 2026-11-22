@@ -1,5 +1,5 @@
 # time-scale 1
-# Card sync, as Andrew, against the real Navidrome: his playlist onto the card over Wi-Fi. The card
+# Card sync, as Andrew, against the real Navidrome (through tools/navidrome-proxy.py): his playlist onto the card over Wi-Fi. The card
 # starts with one of his songs under a wrong number, one taken off his list since, and the rest missing (check.py makes it and checks
 # the files after). A minute after boot the pass starts; STATUS shows it; HOME says what came in;
 # then a song that came down plays from the card. Real sockets: this runs at 1x.
@@ -15,8 +15,9 @@ press enter
 wait-text "STATUS" 3000
 wait-text "GETTING" 30000
 show
-# Two passes, two minutes apart, at the tailnet's 0.2 MB/s. The idle clock takes the screen meanwhile.
-wait 420000
+# Two passes, two minutes apart (song files come from the local proxy, tools/navidrome-proxy.py).
+# The idle clock takes the screen meanwhile.
+wait 330000
 press up
 wait 1000
 expect-text "5 SONGS, UP TO DATE"
@@ -28,11 +29,22 @@ expect-text "4 NEW SONGS ON THE CARD"
 shot sync-home.png
 report after sync
 # A downloaded song plays (it keeps Navidrome's ID3 tag).
-# HOME is on its third page (STATUS): three lefts reach the first, where 2 opens MUSIC.
+# HOME is on its third page (STATUS): three lefts reach the first. Chat has the device's own note to
+# Andrew, naming the new songs, in the notice colours; nobody else sees it.
 repeat 3
 press left
 wait 300
 end-repeat
+press 1
+wait-text "KIDPUTER" 5000
+# One note per pass: the last pass brought 1 song ("New song on your card: ..."), the first 3.
+expect-text "your card"
+shot sync-chat.png
+expect-no-clipping
+button
+wait-text "MENU" 3000
+button
+wait-text "HOME" 3000
 press 2
 wait-text "CARD" 10000
 press enter
@@ -46,3 +58,45 @@ wait 8000
 expect-audio 6
 expect-text "PLAYING"
 report playing a synced song
+# Its lyrics came with it, shown when asked for: L turns them on (P in French). 40 s in, a line is on the screen
+# (check.py compares it with the card's .lrc).
+expect-text "L LYRICS"
+press l
+wait 32000
+show
+shot lyrics.png
+expect-no-clipping
+# The alarm's sound picker: the beeps, the shared ringtones (synced from the public Sonneries playlist),
+# then Andrew's songs named SONGS, not "Andrew".
+press s
+wait 1000
+button
+wait 500
+button
+wait-text "HOME" 5000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press enter
+wait-text "+ NEW ALARM" 3000
+type "0700"
+wait-text "7:00 AM" 3000
+repeat 3
+press right
+wait 300
+end-repeat
+wait-text "SOUND: BEEPS" 3000
+press enter
+wait-text "BEEPS (NO SONG)" 20000
+expect-text "RINGTONES"
+expect-text "SONGS"
+expect-no-text "Andrew"
+shot alarm-picker.png
+expect-no-clipping
+press down
+press enter
+wait-text "Argon" 20000
+shot alarm-ringtones.png
+press enter
+wait-text "SOUND: Argon" 5000
