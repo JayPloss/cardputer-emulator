@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <SD.h>
 
-#include "media_player.h"
+#include "apps/media/media_player.h"
 #include "os.h"
 
 namespace {

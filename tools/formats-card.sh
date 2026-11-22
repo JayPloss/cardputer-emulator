@@ -4,7 +4,7 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$root/run/formats-card}
-firmware=${FIRMWARE:-$HOME/Work/cardputer-adv-supachat/firmware}
+firmware=${FIRMWARE:-$HOME/Work/adv-cardputer-kidputer/firmware}
 rm -rf "$out"; mkdir -p "$out/music/Formats"
 uv run --quiet --with mutagen python -I "$firmware/tools/mp3-fixtures.py" "$out/fx" >/dev/null
 n=1

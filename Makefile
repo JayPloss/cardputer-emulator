@@ -3,9 +3,9 @@
 #   make FIRMWARE=dir build   build one firmware tree (TAG names its output folder)
 #   SAN=asan or SAN=tsan      build with that sanitizer
 HOME_PIO   ?= $(HOME)/.platformio
-FIRMWARE   ?= $(HOME)/Work/cardputer-adv-supachat/firmware
-LIBDEPS    ?= $(HOME)/Work/cardputer-adv-supachat/firmware/.pio/libdeps/cardputer-adv
-SECRETS_DIR ?= $(HOME)/Work/cardputer-adv-supachat/firmware/include
+FIRMWARE   ?= $(HOME)/Work/adv-cardputer-kidputer/firmware
+LIBDEPS    ?= $(HOME)/Work/adv-cardputer-kidputer/firmware/.pio/libdeps/cardputer-adv
+SECRETS_DIR ?= $(HOME)/Work/adv-cardputer-kidputer/firmware/include
 CORE       := $(HOME_PIO)/packages/framework-arduinoespressif32/cores/esp32
 ENV        ?= cardputer-adv
 TAG        ?= current
@@ -48,9 +48,9 @@ LIB_OBJ := $(addprefix $(LIBBUILD)/core/,$(CORE_SRC:.cpp=.o) $(CORE_C:.c=.o)) \
            $(addprefix $(LIBBUILD)/gfx/,$(GFX_CPP:.cpp=.o) $(GFX_C:.c=.o)) \
            $(addprefix $(LIBBUILD)/helix/,$(HELIX:.c=.o)) $(LIBBUILD)/Keyboard.o
 EMU_OBJ := $(addprefix $(LIBBUILD)/emu/,arduino_impl.o net_impl.o m5_impl.o scenario.o window.o mp3_cost.o heap.o runtime.o stubs.o power.o)
-FW_SRC  := $(wildcard $(FIRMWARE)/src/*.cpp)
-FW_OBJ  := $(addprefix $(BUILD)/fw/,$(notdir $(FW_SRC:.cpp=.o))) $(BUILD)/main_emu.o
-FW_FLAGS := $(CXXFLAGS) -std=gnu++11 -I$(FIRMWARE)/include -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -D__real_malloc=emuArenaMalloc -D__real_free=emuArenaFree -D__real_calloc=emuArenaCalloc -D__real_realloc=emuArenaRealloc -D__real__free_r=emuFreeR -include shim/firmware_prelude.h
+FW_SRC  := $(shell find $(FIRMWARE)/src -name '*.cpp')
+FW_OBJ  := $(patsubst $(FIRMWARE)/src/%.cpp,$(BUILD)/fw/%.o,$(FW_SRC)) $(BUILD)/main_emu.o
+FW_FLAGS := $(CXXFLAGS) -std=gnu++11 -I$(FIRMWARE)/include -I$(FIRMWARE)/src -idirafter $(SECRETS_DIR) $(DEVICE_DEFS) -DEMU_HEAP_START=$(HEAP_START) -D__real_malloc=emuArenaMalloc -D__real_free=emuArenaFree -D__real_calloc=emuArenaCalloc -D__real_realloc=emuArenaRealloc -D__real__free_r=emuFreeR -include shim/firmware_prelude.h
 
 BIN := $(BUILD)/cardputer-emulator
 build: $(BIN)
@@ -68,7 +68,7 @@ $(LIBBUILD)/Keyboard.o: $(KEYBOARD) shim/keyboard_prelude.h
 	sed -e '/IOMatrix.h/d' -e '/TCA8418.h/d' -e '/M5Unified.h/d' -e 's#"Keyboard.h"#<utility/Keyboard/Keyboard.h>#' -e 's#"../common.h"#<utility/common.h>#' -e 's#"KeyboardReader/KeyboardReader.h"#<utility/Keyboard/KeyboardReader/KeyboardReader.h>#' $< > $(LIBBUILD)/Keyboard_gen.cpp
 	g++ $(CXXFLAGS) -include shim/keyboard_prelude.h -c $(LIBBUILD)/Keyboard_gen.cpp -o $@
 $(LIBBUILD)/emu/%.o: src/%.cpp src/emu.h src/device_model.h $(wildcard shim/*.h) ; @mkdir -p $(@D); g++ $(CXXFLAGS) -c $< -o $@
-$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/*.h) ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
+$(BUILD)/fw/%.o: $(FIRMWARE)/src/%.cpp shim/firmware_prelude.h $(wildcard $(FIRMWARE)/include/*.h) $(shell find $(FIRMWARE)/src -name '*.h') ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 $(BUILD)/main_emu.o: src/main.cpp src/device_model.h src/emu.h ; @mkdir -p $(@D); g++ $(FW_FLAGS) -c $< -o $@
 
 # The candidate fonts on real M5GFX: tools/font-specimen.py runs this and makes the contact sheet.

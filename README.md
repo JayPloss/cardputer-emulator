@@ -2,7 +2,7 @@
 
 Runs real M5Stack Cardputer ADV firmware on a Linux PC, to catch problems before anything goes near a device. It compiles the firmware's own source files, unchanged, against shims for the hardware, on a heap the size and shape of the real one. A firmware bug that runs the device out of RAM runs this out of RAM too, and it says where.
 
-Built for [SupaChat](https://github.com/JayPloss/cardputer-adv-supachat), whose `emulator/` folder is something else: a browser mock of the UI and contract tests of library behaviour. This one runs the firmware.
+Built for [Kidputer](https://github.com/JayPloss/adv-cardputer-kidputer), whose `emulator/` folder is something else: a browser mock of the UI and contract tests of library behaviour. This one runs the firmware.
 
 ## Use
 
