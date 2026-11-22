@@ -60,6 +60,8 @@ void setWallClock(time_t epoch);
 time_t wallClock();
 // The battery's voltage at GPIO10 as M5Unified reports it; a scenario's `battery` line sets or ramps it.
 void setBattery(int fromMv, int toMv, uint32_t overMs);
+// The server stand-in: Other posts one more message in Family.
+void serverMessage();
 int batteryMv();
 // Whether a time server would answer: joined to a network with the internet.
 bool ntpReachable();

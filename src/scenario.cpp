@@ -131,6 +131,7 @@ int runScenario() {
       if (sscanf(rest.c_str(), "%d-%d-%d %d:%d:%d", &wall.tm_year, &wall.tm_mon, &wall.tm_mday, &wall.tm_hour, &wall.tm_min, &wall.tm_sec) != 6) return fail("clock wants YYYY-MM-DD HH:MM:SS");
       wall.tm_year -= 1900; wall.tm_mon -= 1; wall.tm_isdst = -1;
       setWallClock(mktime(&wall));
+    } else if (command == "server-message") { serverMessage();
     } else if (command == "battery") {
       // battery mv, or battery from to minutes: a straight ramp on the virtual clock.
       int from = 0, to = 0, minutes = 0;
@@ -143,6 +144,7 @@ int runScenario() {
       int least = 0, most = -1;
       sscanf(rest.c_str(), "%d %d", &least, &most);
       const int count = takeToneCount();
+      printf("[scenario] %d tones since the last count\n", count);
       if (count < least || (most >= 0 && count > most)) return fail(std::to_string(count) + " tones played");
     }
     else if (command == "nets-clear") netClear();

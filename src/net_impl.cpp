@@ -190,6 +190,22 @@ namespace {
 // real family room: 804 messages, mostly a few characters long, a few at the 140 limit,
 // client ids of about 19 characters. The messages themselves are made up.
 constexpr int kRoomMessages = 804;
+// Ids above the room's: our own posts, and what a scenario's `server-message` posts as Other.
+std::atomic<int> nextId{kRoomMessages + 1};
+std::mutex extraLock;
+std::vector<int> extraIds;
+// Kept in the state folder: a `reboot` is a new process, and the server outlives the device.
+bool extrasLoaded = false;
+std::string extrasPath() { return std::string(emu::options.state) + "/server-extra.txt"; }
+void loadExtras() {  // with extraLock held
+  if (extrasLoaded) return;
+  extrasLoaded = true;
+  if (FILE *file = fopen(extrasPath().c_str(), "r")) {
+    for (int id; fscanf(file, "%d", &id) == 1;) { extraIds.push_back(id); if (id >= nextId) nextId = id + 1; }
+    fclose(file);
+  }
+}
+int newestId() { std::lock_guard<std::mutex> guard(extraLock); loadExtras(); return extraIds.empty() ? kRoomMessages : extraIds.back(); }
 std::string queryValue(const std::string &request, const std::string &name) {
   const auto end = request.find(" HTTP/");
   auto at = request.find(name + "=");
@@ -220,7 +236,13 @@ std::string syncReply(const std::string &request) {
     tail = ",\"history\":{\"has_more\":" + std::string(oldest > 1 ? "true" : "false") + ",\"next_before\":" + std::to_string(oldest) + "}";
   } else {
     const int after = atoi(queryValue(request, "after").c_str());
-    for (int id = after + 1; id <= kRoomMessages && id <= after + limit; id++) { if (!messages.empty()) messages += ","; messages += messageJson(id, room); }
+    int count = 0;
+    for (int id = after + 1; id <= kRoomMessages && count < limit; id++, count++) { if (!messages.empty()) messages += ","; messages += messageJson(id, room); }
+    if (room == "family") {
+      std::lock_guard<std::mutex> guard(extraLock);
+      loadExtras();
+      for (const int id : extraIds) if (id > after && count++ < limit) { if (!messages.empty()) messages += ","; messages += messageJson(id, room); }
+    }
   }
   return "{\"server_time\":1790000000000,\"room_id\":\"" + room + "\",\"messages\":[" + messages + "],\"receipts\":[]" + tail + "}";
 }
@@ -234,17 +256,26 @@ std::string jsonField(const std::string &json, const std::string &name) {
   return value;
 }
 std::string postReply(const std::string &request) {
-  static int nextId = kRoomMessages + 1;
   const std::string body = request.substr(request.find("\r\n\r\n") + 4);
   return "{\"message\":{\"id\":" + std::to_string(nextId++) + ",\"client_id\":\"" + jsonField(body, "client_id") + "\",\"conversation_id\":\"" +
          jsonField(body, "room_id") + "\",\"author_id\":\"albie\",\"author_name\":\"Albie\",\"type\":\"text\",\"body\":\"" + jsonField(body, "body") +
          "\",\"created_at\":1790000000000,\"reply_to\":null,\"receipt_state\":\"server\"}}";
 }
 std::string roomsReply() {
-  return "{\"rooms\":[{\"id\":\"family\",\"name\":\"Family\",\"kind\":\"room\",\"group_id\":\"g1\",\"group_name\":\"Family\",\"default_language\":\"en\",\"latest_message_id\":804,\"unread_count\":0,\"color_index\":1},"
+  return "{\"rooms\":[{\"id\":\"family\",\"name\":\"Family\",\"kind\":\"room\",\"group_id\":\"g1\",\"group_name\":\"Family\",\"default_language\":\"en\",\"latest_message_id\":" + std::to_string(newestId()) + ",\"unread_count\":0,\"color_index\":1},"
          "{\"id\":\"k-buds\",\"name\":\"K-BUDS\",\"kind\":\"room\",\"group_id\":\"g2\",\"group_name\":\"Friends\",\"default_language\":\"en\",\"latest_message_id\":218,\"unread_count\":0,\"color_index\":2}]}";
 }
 }  // namespace
+
+namespace emu {
+void serverMessage() {
+  HostScope host;
+  std::lock_guard<std::mutex> guard(extraLock);
+  loadExtras();
+  extraIds.push_back(nextId++);
+  if (FILE *file = fopen(extrasPath().c_str(), "a")) { fprintf(file, "%d\n", extraIds.back()); fclose(file); }
+}
+}  // namespace emu
 
 // mbedTLS asks for its handshake memory in many small pieces over the handshake's length,
 // so a device short of RAM runs right down to nothing before the handshake fails. That

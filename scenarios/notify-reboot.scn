@@ -1,0 +1,25 @@
+# A message notifies once, when it arrives, never again at a restart (the v0.43 report on Julien's
+# device: the same recent message notified at every restart). Tones are counted: the boot's own
+# melody is measured on the first boot, and the restart must play exactly as many.
+wait-text "HOME" 60000
+wait 30000
+report first boot settled
+# The startup melody: 114 tones on v0.61.
+expect-tones 114 114
+wait 20000
+expect-tones 0 0
+# Someone posts: one notification.
+server-message
+wait 15000
+# The notification: 3 tones.
+expect-tones 3 3
+wait 20000
+expect-tones 0 0
+reboot
+wait-text "HOME" 60000
+wait 30000
+report after restart
+# The same melody and nothing more: no notification for the message already seen.
+expect-tones 114 114
+wait 20000
+expect-tones 0 0

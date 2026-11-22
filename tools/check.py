@@ -19,7 +19,7 @@ SCALE = os.environ.get('SCALE', '5')
 FRENCH = {'french', 'french-keyboard'}  # Run on a French build.
 NEEDS_CARD = {'card-book', 'book-sleep', 'school-night', 'boot-skip', 'contain', 'stress-apps', 'books-flaky'}
 OWN_CARD = {'card-formats': ROOT / 'run' / 'formats-card', 'card-sync': ROOT / 'run' / 'sync-card'}  # made by tools/formats-card.sh, sync_card()
-ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401', 'clock-idle', 'book-sleep', 'alarm-song', 'school-night', 'chat-emoji', 'charge-normal', 'charge-charging', 'card-sync']
+ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401', 'clock-idle', 'book-sleep', 'alarm-song', 'school-night', 'chat-emoji', 'notify-reboot', 'charge-normal', 'charge-charging', 'card-sync']
 
 
 def build(tag='current', extra=()):
