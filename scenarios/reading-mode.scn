@@ -1,0 +1,30 @@
+# Jay's reading mode: Fn+J makes chat and the song lists large type, keys working as usual; Fn+J again ends it.
+wait-text "HOME" 60000
+press 1
+wait-text "Family" 5000
+type "can you read this papa? <3"
+press enter
+wait 4000
+chord fn j
+wait 500
+show
+shot reading-chat.png
+expect-no-clipping
+chord fn j
+wait 500
+shot reading-chat-off.png
+chord fn esc
+wait-text "HOME" 3000
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+chord fn j
+wait 500
+press down
+wait 300
+expect-text "02 Song 2"
+shot reading-list.png
+expect-no-clipping
