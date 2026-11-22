@@ -1,0 +1,48 @@
+# time-scale 1
+# Card sync, as Andrew, against the real Navidrome: his playlist onto the card over Wi-Fi. The card
+# starts with one of his songs under a wrong number and the rest missing (check.py makes it and checks
+# the files after). A minute after boot the pass starts; STATUS shows it; HOME says what came in;
+# then a song that came down plays from the card. Real sockets: this runs at 1x.
+wait-text "HOME" 60000
+wait 50000
+repeat 4
+press right
+wait 300
+end-repeat
+press down
+wait 300
+press enter
+wait-text "STATUS" 3000
+wait-text "GETTING" 30000
+show
+# Two passes, two minutes apart, at the tailnet's 0.2 MB/s. The idle clock takes the screen meanwhile.
+wait 420000
+press up
+wait 1000
+expect-text "5 SONGS, UP TO DATE"
+shot sync-status.png
+expect-no-clipping
+press esc
+wait-text "NEW SONGS ON THE CARD" 3000
+expect-text "4 NEW SONGS ON THE CARD"
+shot sync-home.png
+report after sync
+# A downloaded song plays (it keeps Navidrome's ID3 tag).
+# HOME is on its third page (STATUS): three lefts reach the first, where 2 opens MUSIC.
+repeat 3
+press left
+wait 300
+end-repeat
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "Andrew" 30000
+press down
+press enter
+wait-text "001" 30000
+press enter
+wait-text "PLAYING" 20000
+wait 8000
+expect-audio 6
+expect-text "PLAYING"
+report playing a synced song

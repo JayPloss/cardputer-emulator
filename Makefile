@@ -31,7 +31,7 @@ LIBBUILD := build/libs$(if $(SAN),-$(SAN))
 M5GFX    := $(LIBDEPS)/M5GFX/src
 INCLUDES := -Ishim -Isrc -I$(CORE) -I$(M5GFX) -I$(LIBDEPS)/M5Cardputer/src -I$(LIBDEPS)/ArduinoJson/src -I$(LIBDEPS)/libhelix/src -I$(LIBDEPS)/libhelix/src/libhelix-mp3
 DEFINES  := -DARDUINO=10819 -DLGFX_SDL -DESP_NOW_ETH_ALEN=6
-COMMON   := -g -O1 -fno-omit-frame-pointer -funsigned-char -w $(SANFLAGS) $(DEFINES) $(INCLUDES)
+COMMON   := -MMD -MP -g -O1 -fno-omit-frame-pointer -funsigned-char -w $(SANFLAGS) $(DEFINES) $(INCLUDES)
 CXXFLAGS := $(COMMON) -std=gnu++17 -fexceptions
 CFLAGS   := $(COMMON) -std=gnu11
 LDFLAGS  := $(SANFLAGS) -rdynamic -pthread -Wl,--wrap=malloc,--wrap=free,--wrap=calloc,--wrap=realloc,--wrap=abort,--wrap=MP3Decode,--wrap=helix_malloc $(shell sdl2-config --libs)
@@ -85,3 +85,6 @@ clean:
 	rm -rf build run
 
 .PHONY: build check clean font-specimen
+
+# Header changes rebuild what includes them.
+-include $(shell find build -name "*.d" 2>/dev/null)

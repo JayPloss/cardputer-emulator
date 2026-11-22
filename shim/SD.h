@@ -45,5 +45,10 @@ class SDClass {
   bool remove(const String &path) { return remove(path.c_str()); }
   bool rename(const char *from, const char *to);
   bool rename(const String &from, const String &to) { return rename(from.c_str(), to.c_str()); }
+  bool mkdir(const char *path);
+  bool mkdir(const String &path) { return mkdir(path.c_str()); }
+  // A 32 GB card (29.1 GB formatted, as the kids' cards), holding what the run's card folder holds.
+  uint64_t totalBytes();
+  uint64_t usedBytes();
 };
 extern SDClass SD;

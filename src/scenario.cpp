@@ -33,6 +33,8 @@ const std::map<std::string, Key> &namedKeys() {
   return keys;
 }
 const char *const kRows[4] = {"`1234567890-=", "\tqwertyuiop[]\\", "  asdfghjkl;'", "   zxcvbnm,./"};
+// The same keys with shift held, as M5Cardputer's key map has them.
+const char *const kShiftRows[4] = {"~!@#$%^&*()_+", "\tQWERTYUIOP{}|", "  ASDFGHJKL:\"", "   ZXCVBNM<>?"};
 
 bool findCharacter(char c, Key &key) {
   for (int y = 0; y < 4; y++) {
@@ -111,7 +113,14 @@ int runScenario() {
       for (const char c : unquote(rest)) {
         Key key;
         if (c == ' ') key = namedKeys().at("space");
-        else if (!findCharacter(c, key)) return fail(std::string("cannot type ") + c);
+        else if (!findCharacter(c, key)) {
+          bool found = false;
+          for (int y = 0; y < 4 && !found; y++) for (int x = 0; kShiftRows[y][x]; x++) if (kShiftRows[y][x] == c && c != ' ') { key = {x, y}; found = true; break; }
+          if (!found) return fail(std::string("cannot type ") + c);
+          const Key shift = namedKeys().at("shift");
+          keySet(shift.x, shift.y, true); pressKey(key); keySet(shift.x, shift.y, false); sleepMs(kKeyHoldMs);
+          continue;
+        }
         pressKey(key);
       }
     } else if (command == "button") { buttonPress(); sleepMs(100); }
@@ -122,6 +131,13 @@ int runScenario() {
       if (sscanf(rest.c_str(), "%d-%d-%d %d:%d:%d", &wall.tm_year, &wall.tm_mon, &wall.tm_mday, &wall.tm_hour, &wall.tm_min, &wall.tm_sec) != 6) return fail("clock wants YYYY-MM-DD HH:MM:SS");
       wall.tm_year -= 1900; wall.tm_mon -= 1; wall.tm_isdst = -1;
       setWallClock(mktime(&wall));
+    } else if (command == "battery") {
+      // battery mv, or battery from to minutes: a straight ramp on the virtual clock.
+      int from = 0, to = 0, minutes = 0;
+      const int got = sscanf(rest.c_str(), "%d %d %d", &from, &to, &minutes);
+      if (got == 1) setBattery(from, from, 0);
+      else if (got == 3) setBattery(from, to, static_cast<uint32_t>(minutes) * 60000u);
+      else return fail("battery wants mv, or from-mv to-mv minutes");
     } else if (command == "expect-tones") {
       // expect-tones min [max]: tones started since the last expect-tones.
       int least = 0, most = -1;

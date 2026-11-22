@@ -18,8 +18,8 @@ CARD = os.environ.get('CARD', str(Path.home() / 'Cardputer-card'))
 SCALE = os.environ.get('SCALE', '5')
 FRENCH = {'french', 'french-keyboard'}  # Run on a French build.
 NEEDS_CARD = {'card-book', 'book-sleep', 'school-night', 'boot-skip', 'contain', 'stress-apps', 'books-flaky'}
-OWN_CARD = {'card-formats': ROOT / 'run' / 'formats-card'}  # made by tools/formats-card.sh
-ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401', 'clock-idle', 'book-sleep', 'alarm-song', 'school-night']
+OWN_CARD = {'card-formats': ROOT / 'run' / 'formats-card', 'card-sync': ROOT / 'run' / 'sync-card'}  # made by tools/formats-card.sh, sync_card()
+ALL = ['home-pages', 'book-again', 'boot-online', 'boot-offline', 'boot-skip', 'away-nonav', 'away-nowifi', 'away-captive', 'away-nointernet', 'away-joinfail', 'net-add', 'place-power-cut', 'libc-bypass', 'card-book', 'next-chapter', 'contain', 'walkie', 'chat', 'stress-apps', 'stream', 'french', 'french-keyboard', 'clock-timer', 'clock-screen', 'clock-alarm', 'clock-alarm-typing', 'clock-noclock', 'card-formats', 'books-flaky', 'outbox', 'outbox-refused', 'link-certrenewed', 'link-badcert', 'link-dnsfail', 'link-block443', 'link-auth401', 'clock-idle', 'book-sleep', 'alarm-song', 'school-night', 'chat-emoji', 'charge-normal', 'charge-charging', 'card-sync']
 
 
 def build(tag='current', extra=()):
@@ -42,6 +42,58 @@ def run(name, tag='current', time_scale=SCALE, sanitizer=''):
     return done
 
 
+# card-sync runs as Andrew against the real Navidrome, whose address MUSIC_HOST can override (the
+# tailnet's, away from home). Andrew's playlist names stay out of this public repo: the card is made here.
+def music_host():
+    if os.environ.get('MUSIC_HOST'):
+        return os.environ['MUSIC_HOST']
+    header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h'
+    match = re.search(r'SUPACHAT_MUSIC_HOST "([^"]+)"', header.read_text()) if header.exists() else None
+    return match[1] if match else ''
+
+
+def andrew_playlist():
+    import hashlib, json, secrets, urllib.parse, urllib.request
+    header = (Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h').read_text()
+    found = re.search(r'defined\(SUPACHAT_DEVICE_ANDREW\)\n#define SUPACHAT_MUSIC_USER "[^"]*"\n#define SUPACHAT_MUSIC_PASSWORD "([^"]*)"', header)
+    password = found[1] if found else ''
+    def call(method, **params):
+        salt = secrets.token_hex(6)
+        query = dict(u='andrew', t=hashlib.md5((password + salt).encode()).hexdigest(), s=salt, v='1.16.1', c='emu', f='json', **params)
+        with urllib.request.urlopen(f'http://{music_host()}/rest/{method}?{urllib.parse.urlencode(query)}', timeout=10) as reply:
+            return json.load(reply)['subsonic-response']
+    playlist = [p for p in call('getPlaylists')['playlists']['playlist'] if p['name'] == 'Andrew'][0]
+    return call('getPlaylist', id=playlist['id'])['playlist']['entry']
+
+
+def safe(text):
+    return re.sub(r'[\\/:*?"<>|]', '_', text).strip('. ')
+
+
+def card_name(number, entry):
+    return f'{number:03d} {safe(entry["title"])} - {safe(entry["artist"].split(", ")[0])}.mp3'
+
+
+def sync_card():
+    """Andrew's card before a sync: his second song under another number (to be renamed), the rest missing."""
+    card = ROOT / 'run' / 'sync-card'
+    subprocess.run(['rm', '-rf', str(card)], check=True)
+    (card / 'music' / 'Andrew').mkdir(parents=True)
+    entries = andrew_playlist()
+    (card / 'music' / 'Andrew' / card_name(9, entries[1])).write_bytes(b'\xff\xfb' + bytes(4094))
+    return entries
+
+
+def check_sync_card(folder, entries):
+    have = sorted(p.name for p in (folder / 'card' / 'music' / 'Andrew').iterdir())  # the renamed song is the seed's link
+    want = sorted(card_name(n, e) for n, e in enumerate(entries, 1))
+    songs = [n for n in have if not n.startswith('.')]
+    problems = []
+    if songs != want: problems.append(f'card has {songs}, playlist wants {want}')
+    if any(n.startswith('.part') for n in have): problems.append('a .part file was left')
+    return problems
+
+
 def server_reachable():
     # The address is in the same gitignored header the firmware builds with.
     header = Path(os.environ.get('SECRETS_DIR', Path.home() / 'Work/cardputer-adv-supachat/firmware/include')) / 'music_secrets.h'
@@ -60,6 +112,12 @@ def runnable(name):
         return False
     if name in NEEDS_CARD and not Path(CARD).is_dir():
         return False
+    if name == 'card-sync':
+        try:
+            socket.create_connection(tuple(music_host().rsplit(':', 1)), timeout=3).close()
+            return True
+        except (OSError, ValueError):
+            return False
     return name != 'stream' or server_reachable()
 
 
@@ -79,6 +137,20 @@ def main():
         print(f'{name}: {"PASS" if ok else "FAIL"}')
         if not ok:
             print('\n'.join(line for line in done.stdout.splitlines() if 'FAILED' in line or 'CRASH' in line or '[screen]' in line))
+    if 'card-sync' in names:
+        names = [name for name in names if name != 'card-sync']
+        if runnable('card-sync'):
+            entries = sync_card()
+            build('andrew', [f'DEVICE_DEFS=-DSUPACHAT_DEVICE_ANDREW -DSUPACHAT_DEVICE_NAME="\\"Andrew\\"" -DSUPACHAT_DEVICE_ID="\\"andrew\\"" -DSUPACHAT_MUSIC_HOST_OVERRIDE="\\"{music_host()}\\""'])
+            done = run('card-sync', tag='andrew')
+            problems = [] if done.returncode else check_sync_card(ROOT / 'run' / 'card-sync', entries)
+            ok = done.returncode == 0 and not problems
+            failed += 0 if ok else 1
+            low = re.findall(r'lowest ever (\d+)', done.stdout)
+            print(f'card-sync: {"PASS" if ok else "FAIL"}' + (f', lowest free heap {low[-1]}' if low else ''))
+            for line in problems + [l for l in done.stdout.splitlines() if 'FAILED' in l or 'CRASH' in l]: print(line)
+        else:
+            print('card-sync: SKIPPED, no music server reachable (MUSIC_HOST)')
     # Scenarios run side by side: they share nothing but the CPU, and the virtual clock waits little.
     with ThreadPool(4) as pool:
         finished = {}

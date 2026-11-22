@@ -1,0 +1,62 @@
+# time-scale 60
+# What the shown percentage does while the cell charges, in charging mode. The ADV gives firmware no
+# charger control and no current reading, only the voltage at GPIO10. The voltage climbs as a charging
+# cell's does, 3700 to 3850 mV in an hour: 25% to 65% on the firmware's own curve.
+battery 3700
+wait-text "HOME" 60000
+# The estimate starts from the saved level and creeps to the cell's; let it settle.
+wait 6000000
+press up
+wait 500
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press enter
+wait-text "ENTER START" 3000
+press enter
+wait-text "ENTER SCREEN OFF" 3000
+wait 25000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+battery 3700 3850 60
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show
+wait 600000
+# The screen goes dark after 20 s and stops drawing; the rear button lights it again.
+button
+wait 1500
+show

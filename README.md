@@ -38,6 +38,8 @@ Run against two commits that crashed on a real Cardputer, with no change to eith
 
 It also found, in the new firmware before any device saw it: a repeated chapter when one ended, a list answer arriving after its app had closed, a task deleting itself while being restarted, a JSON read timing out on a slow server, and a decoder probe that reported "not an MP3" when it had really run out of memory.
 
+`card-sync` runs as Andrew against the real Navidrome (its address from the firmware's music header, or `MUSIC_HOST`, e.g. the tailnet's away from home): check.py makes his card with one song misnumbered, the scenario waits out two passes, and check.py then checks the card holds his playlist's names exactly. Skipped when no server answers.
+
 ## Two tiers
 
 `make check` runs both, and SupaChat's upload gate refuses an upload without them.
@@ -63,7 +65,7 @@ The limits are the hardware's. The device has no current sensor, so every curren
 
 ## Scenarios
 
-Files in `scenarios/`, one command per line: `wait ms`, `press names`, `chord a b`, `type "text"`, `button`, `wifi on|off`, `wait-text "x" ms`, `expect-text`, `expect-no-text`, `show`, `shot file.png`, `report label`, `reboot`, `expect-file path "x"`, `expect-file-gone path`, `remove-file path`, `expect-audio seconds`, `expect-underruns n`, `expect-heap-free n`, `expect-heap-lowest n`, `expect-no-clipping`, `expect-power-ok`, `expect-crash "x"`, `squeeze bytes`, `repeat n` … `end-repeat`. A `# time-scale N` first line sets the speed. Each run leaves `run/<name>/log.txt`, `state/timeline.csv` (free heap and largest block every 5 s from boot) and `state/audio.wav`.
+Files in `scenarios/`, one command per line: `wait ms`, `press names`, `chord a b`, `type "text"`, `button`, `wifi on|off`, `wait-text "x" ms`, `expect-text`, `expect-no-text`, `show`, `shot file.png`, `report label`, `reboot`, `expect-file path "x"`, `expect-file-gone path`, `remove-file path`, `expect-audio seconds`, `expect-underruns n`, `expect-heap-free n`, `expect-heap-lowest n`, `expect-no-clipping`, `expect-power-ok`, `expect-crash "x"`, `squeeze bytes`, `battery mv` or `battery from-mv to-mv minutes` (the GPIO10 voltage M5Unified reports, set or ramped on the virtual clock; 3986 mV until set), typed shifted characters (`:` `<` `(`), `repeat n` … `end-repeat`. A `# time-scale N` first line sets the speed. Each run leaves `run/<name>/log.txt`, `state/timeline.csv` (free heap and largest block every 5 s from boot) and `state/audio.wav`.
 
 ## The other ways to run firmware
 

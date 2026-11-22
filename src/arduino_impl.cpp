@@ -36,6 +36,13 @@ bool setCpuFrequencyMhz(uint32_t) { return true; }
 // `clock` line, so a sped-up run's clock speeds up with it, as the device's would.
 namespace { time_t wallBase = 0; uint32_t wallBaseMs = 0; sntp_sync_time_cb_t sntpCallback = nullptr; }
 namespace emu {
+namespace { int batteryFromMv = 3986, batteryToMv = 3986; uint32_t batteryRampAt = 0, batteryRampMs = 0; }
+void setBattery(int fromMv, int toMv, uint32_t overMs) { batteryFromMv = fromMv; batteryToMv = toMv; batteryRampAt = emu::millis(); batteryRampMs = overMs; }
+int batteryMv() {
+  const uint32_t done = emu::millis() - batteryRampAt;
+  if (!batteryRampMs || done >= batteryRampMs) return batteryToMv;
+  return batteryFromMv + static_cast<int>(static_cast<int64_t>(batteryToMv - batteryFromMv) * done / batteryRampMs);
+}
 void setWallClock(time_t epoch) { wallBase = epoch; wallBaseMs = emu::millis(); }
 time_t wallClock() {
   if (!wallBase) setWallClock(time(nullptr));
@@ -486,6 +493,27 @@ File SDClass::open(const char *path, const char *mode) {
   if (!state->file && !state->dir) { emu::deviceFree(block); delete state; return File(); }
   result.state_ = state;
   return result;
+}
+bool SDClass::mkdir(const char *path) { if (!path || path[0] != '/') return false; emu::HostScope host; return ::mkdir(hostPath(path).c_str(), 0755) == 0; }
+uint64_t SDClass::totalBytes() { return 29100ull * 1000 * 1000; }
+uint64_t SDClass::usedBytes() {
+  emu::HostScope host;
+  uint64_t used = 0;
+  std::vector<std::string> folders{emu::options.card};
+  while (!folders.empty()) {
+    const std::string folder = folders.back(); folders.pop_back();
+    DIR *dir = ::opendir(folder.c_str());
+    if (!dir) continue;
+    while (dirent *entry = ::readdir(dir)) {
+      if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+      struct stat info{};
+      const std::string path = folder + "/" + entry->d_name;
+      if (::stat(path.c_str(), &info) != 0) continue;
+      if (S_ISDIR(info.st_mode)) folders.push_back(path); else used += info.st_size;
+    }
+    ::closedir(dir);
+  }
+  return used;
 }
 bool SDClass::exists(const char *path) { if (!path || path[0] != '/') return false; emu::HostScope host; struct stat info{}; return stat(hostPath(path).c_str(), &info) == 0; }
 bool SDClass::remove(const char *path) { if (!path || path[0] != '/') return false; emu::HostScope host; maybeCut("remove", path); return ::remove(hostPath(path).c_str()) == 0; }

@@ -1,0 +1,23 @@
+# Emoji recipes show as pictures in chat. A recipe inside a word or a link stays text.
+wait-text "HOME" 60000
+press 1
+wait-text "Family" 5000
+type "hi :) <3 ;) :D"
+press enter
+wait 4000
+type ":( :P :O :/ see http://x.ca"
+press enter
+wait 6000
+show
+shot chat-emoji.png
+expect-no-clipping
+button
+wait-text "MENU" 3000
+press down
+press down
+press down
+press down
+press down
+press enter
+wait-text "HAPPY" 3000
+shot emoji-recipes.png

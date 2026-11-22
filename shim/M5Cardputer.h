@@ -88,7 +88,8 @@ class EmuButton {
   bool clicked_ = false;
 };
 
-struct EmuPower { int getBatteryVoltage() { return 3986; } };
+namespace emu { int batteryMv(); }
+struct EmuPower { int getBatteryVoltage() { return emu::batteryMv(); } };
 struct EmuI2C { bool scanID(uint8_t, uint32_t) { return true; } };
 
 class EmuCardputer {
