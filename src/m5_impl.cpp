@@ -138,26 +138,32 @@ uint64_t sleepTimerUs = 0;
 bool keyWake = false, buttonWake = false;
 esp_sleep_wakeup_cause_t lastCause = ESP_SLEEP_WAKEUP_UNDEFINED;
 std::atomic<uint64_t> asleepMs{0};
+std::atomic<bool> inSleep{false};
+std::atomic<uint32_t> sleepStartedAt{0};
 }  // namespace
 int gpio_wakeup_enable(gpio_num_t pin, gpio_int_type_t) { if (pin == GPIO_NUM_11) keyWake = true; if (pin == GPIO_NUM_0) buttonWake = true; return 0; }
 int gpio_wakeup_disable(gpio_num_t pin) { if (pin == GPIO_NUM_11) keyWake = false; if (pin == GPIO_NUM_0) buttonWake = false; return 0; }
 int gpio_set_intr_type(gpio_num_t, gpio_int_type_t) { return 0; }
 esp_err_t esp_sleep_enable_timer_wakeup(uint64_t us) { sleepTimerUs = us; return 0; }
 esp_err_t esp_sleep_enable_gpio_wakeup() { return 0; }
+// No timer: only a key or the button wakes it (the chip sleeps until then).
+esp_err_t esp_sleep_disable_wakeup_source(esp_sleep_wakeup_cause_t source) { if (source == ESP_SLEEP_WAKEUP_TIMER) sleepTimerUs = UINT64_MAX / 2; return 0; }
 esp_err_t esp_light_sleep_start() {
   const uint32_t started = emu::millis();
-  const uint32_t forMs = static_cast<uint32_t>(sleepTimerUs / 1000);
+  sleepStartedAt = started; inSleep = true;
+  const uint64_t forMs = sleepTimerUs / 1000;
   lastCause = ESP_SLEEP_WAKEUP_TIMER;
   while (emu::millis() - started < forMs) {
     if ((keyWake || buttonWake) && emu::wakePinLow()) { lastCause = ESP_SLEEP_WAKEUP_GPIO; break; }
     emu::sleepMs(5);
   }
+  inSleep = false;
   asleepMs += emu::millis() - started;
   return 0;
 }
 esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return lastCause; }
 namespace emu {
-uint64_t sleptMs() { return asleepMs.load(); }
+uint64_t sleptMs() { return asleepMs.load() + (inSleep.load() ? emu::millis() - sleepStartedAt.load() : 0); }  // the sleep in progress counts too
 bool screenOff() { return M5Cardputer.Display.asleep() || M5Cardputer.Display.getBrightness() == 0; }
 }  // namespace emu
 

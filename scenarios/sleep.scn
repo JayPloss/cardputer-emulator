@@ -33,7 +33,7 @@ wait 2000
 expect-screen-on
 expect-text "HOME"
 expect-no-text "Family"
-# 06:45: asleep again ten minutes later, at 06:55; the alarm at 07:00 wakes it and rings.
+# 06:45: asleep again ten minutes later, at 06:55; it wakes at 07:00 itself, no radio, and the alarm rings.
 clock 2026-11-09 06:45:00
 wait 620000
 expect-screen-off

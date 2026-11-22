@@ -20,7 +20,8 @@ show
 wait 330000
 press up
 wait 1000
-expect-text "5 SONGS, UP TO DATE"
+# However many songs his playlist has today (Spotify adds and drops them); check.py compares the names.
+expect-text "SONGS, UP TO DATE"
 shot sync-status.png
 expect-no-clipping
 press esc
@@ -37,8 +38,7 @@ wait 300
 end-repeat
 press 1
 wait-text "KIDPUTER" 5000
-# One note per pass: the last pass brought 1 song ("New song on your card: ..."), the first 3.
-expect-text "your card"
+# One note per pass, naming the songs it brought (a long list wraps past the top of the screen).
 shot sync-chat.png
 expect-no-clipping
 button
