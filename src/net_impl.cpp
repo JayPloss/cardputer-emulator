@@ -11,6 +11,7 @@
 
 #include <atomic>
 #include <cstdio>
+#include <map>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -194,6 +195,7 @@ constexpr int kRoomMessages = 804;
 std::atomic<int> nextId{kRoomMessages + 1};
 std::mutex extraLock;
 std::vector<int> extraIds;
+std::map<int, std::string> extraBodies;  // a server-message's own text, when it gave one
 // Kept in the state folder: a `reboot` is a new process, and the server outlives the device.
 bool extrasLoaded = false;
 std::string extrasPath() { return std::string(emu::options.state) + "/server-extra.txt"; }
@@ -201,7 +203,13 @@ void loadExtras() {  // with extraLock held
   if (extrasLoaded) return;
   extrasLoaded = true;
   if (FILE *file = fopen(extrasPath().c_str(), "r")) {
-    for (int id; fscanf(file, "%d", &id) == 1;) { extraIds.push_back(id); if (id >= nextId) nextId = id + 1; }
+    char line[512];
+    while (fgets(line, sizeof line, file)) {
+      const int id = atoi(line);
+      if (id <= 0) continue;
+      extraIds.push_back(id); if (id >= nextId) nextId = id + 1;
+      if (const char *tab = strchr(line, '\t')) { std::string body(tab + 1); while (!body.empty() && body.back() == '\n') body.pop_back(); extraBodies[id] = body; }
+    }
     fclose(file);
   }
 }
@@ -217,7 +225,8 @@ std::string messageJson(int id, const std::string &room) {
   // Lengths repeat to give an average of about 6, as measured, with the occasional long one.
   static const int lengths[] = {2, 3, 4, 5, 3, 7, 2, 4, 6, 3, 2, 5, 9, 3, 4, 2, 6, 3, 28, 140};
   const int length = lengths[id % 20];
-  const std::string body(length, "abcdefgh"[id % 8]);
+  std::string body(length, "abcdefgh"[id % 8]);
+  if (extraBodies.count(id)) body = extraBodies[id];
   const std::string author = id % 3 == 0 ? "test2" : "test1";
   return "{\"id\":" + std::to_string(id) + ",\"client_id\":\"emu-000000-" + std::to_string(100000 + id) + "\",\"conversation_id\":\"" + room +
          "\",\"author_id\":\"" + author + "\",\"author_name\":\"" + (id % 3 == 0 ? "Other" : "Test") + "\",\"type\":\"text\",\"body\":\"" + body +
@@ -268,12 +277,13 @@ std::string roomsReply() {
 }  // namespace
 
 namespace emu {
-void serverMessage() {
+void serverMessage(const char *body) {
   HostScope host;
   std::lock_guard<std::mutex> guard(extraLock);
   loadExtras();
   extraIds.push_back(nextId++);
-  if (FILE *file = fopen(extrasPath().c_str(), "a")) { fprintf(file, "%d\n", extraIds.back()); fclose(file); }
+  if (body && *body) extraBodies[extraIds.back()] = body;
+  if (FILE *file = fopen(extrasPath().c_str(), "a")) { fprintf(file, "%d\t%s\n", extraIds.back(), body ? body : ""); fclose(file); }
 }
 }  // namespace emu
 

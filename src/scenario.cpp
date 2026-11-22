@@ -140,7 +140,7 @@ int runScenario() {
       if (!screenOff()) return fail("the screen is on");
     } else if (command == "expect-screen-on") {
       if (screenOff()) return fail("the screen is off");
-    } else if (command == "server-message") { serverMessage();
+    } else if (command == "server-message") { const std::string body = unquote(rest); serverMessage(body.empty() ? nullptr : body.c_str());
     } else if (command == "battery") {
       // battery mv, or battery from to minutes: a straight ramp on the virtual clock.
       int from = 0, to = 0, minutes = 0;

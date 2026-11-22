@@ -1,0 +1,21 @@
+# The heart on a French device: Alt+, types < on the CSA layout, then 3; sent, the line draws a heart.
+wifi off
+wait-text "MUSIQUE" 30000
+press 1
+wait-text "TAB: TOUCHES" 5000
+press j
+press e
+press space
+chord alt ,
+press 3
+wait 300
+press enter
+wait 6000
+show
+shot french-heart.png
+# A heart sent by someone else (Papa, the server), as Naomie receives it: online this time.
+wifi on
+server-message "je t'aime <3"
+wait-text "aime" 120000
+show
+shot french-heart-received.png

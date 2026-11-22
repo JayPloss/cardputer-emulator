@@ -21,3 +21,16 @@ press down
 press enter
 wait-text "HAPPY" 3000
 shot emoji-recipes.png
+# Hearts received from someone else, as phones send them: plain, the emoji (with its variation selector) and a
+# lookalike angle bracket. Each draws the heart (shot chat-emoji-received.png).
+press enter
+wait-text "MENU" 3000
+press left
+wait-text "Family" 5000
+server-message "plain <3 ok"
+server-message "phone ❤️ ok"
+server-message "lookalike ‹3 ok"
+wait-text "lookalike" 30000
+show
+shot chat-emoji-received.png
+expect-no-clipping
