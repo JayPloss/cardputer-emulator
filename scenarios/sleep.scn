@@ -1,0 +1,46 @@
+# time-scale 10
+# Real sleep: left alone, the idle clock comes at 2 minutes and the device sleeps at 10 (screen off, radio
+# off, light sleep). A key wakes it and does nothing else (1 would have opened chat). An alarm due while it
+# sleeps still rings on time. Left open on the idle clock, a device ran out overnight (Jay, 2026-11-22).
+wait-text "HOME" 60000
+# Monday 06:40, an alarm at 07:00 on weekdays.
+clock 2026-11-09 06:40:00
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+type "0700"
+wait-text "7:00 AM" 3000
+expect-text "MON-FRI"
+press esc
+wait-text "HOME" 3000
+expect-screen-on
+# Two minutes: the idle clock. Ten: asleep.
+wait 130000
+expect-text "ALARM 07:00"
+wait 500000
+expect-screen-off
+wait 60000
+expect-asleep 50
+report asleep
+# A key wakes it, and does nothing else: still HOME, not chat.
+press 1
+wait 2000
+expect-screen-on
+expect-text "HOME"
+expect-no-text "Family"
+# 06:45: asleep again ten minutes later, at 06:55; the alarm at 07:00 wakes it and rings.
+clock 2026-11-09 06:45:00
+wait 620000
+expect-screen-off
+wait-text "ENTER = STOP" 600000
+expect-text "7:00 AM"
+expect-screen-on
+shot sleep-alarm-woke.png
+press enter
+wait 1000
+report after the alarm

@@ -11,6 +11,8 @@
 
 #include "device_model.h"
 #include "emu.h"
+#include <esp_sleep.h>
+#include <driver/gpio.h>
 
 EmuCardputer M5Cardputer;
 EmuM5 M5;
@@ -73,7 +75,10 @@ void screenTextCommit(const char *text) {
   std::lock_guard<std::mutex> guard(screenLock);
   shownText = text;
 }
+bool screenOff();
 void screenText(char *out, size_t size) {
+  // A sleeping panel or a dark backlight shows nothing, whatever was last drawn.
+  if (screenOff()) { snprintf(out, size, "%s", ""); return; }
   HostScope host;
   std::lock_guard<std::mutex> guard(screenLock);
   snprintf(out, size, "%s", shownText.c_str());
@@ -120,6 +125,40 @@ void keySet(int x, int y, bool down) {
   if (!down && at != heldKeys.end()) heldKeys.erase(at);
 }
 void buttonPress() { buttonEvents++; }
+bool wakePinLow() {
+  HostScope host;
+  std::lock_guard<std::mutex> guard(keyLock);
+  return !heldKeys.empty() || buttonEvents.load() > 0;
+}
+}  // namespace emu
+
+// ---- Light sleep (shim/esp_sleep.h, shim/driver/gpio.h) ----
+namespace {
+uint64_t sleepTimerUs = 0;
+bool keyWake = false, buttonWake = false;
+esp_sleep_wakeup_cause_t lastCause = ESP_SLEEP_WAKEUP_UNDEFINED;
+std::atomic<uint64_t> asleepMs{0};
+}  // namespace
+int gpio_wakeup_enable(gpio_num_t pin, gpio_int_type_t) { if (pin == GPIO_NUM_11) keyWake = true; if (pin == GPIO_NUM_0) buttonWake = true; return 0; }
+int gpio_wakeup_disable(gpio_num_t pin) { if (pin == GPIO_NUM_11) keyWake = false; if (pin == GPIO_NUM_0) buttonWake = false; return 0; }
+int gpio_set_intr_type(gpio_num_t, gpio_int_type_t) { return 0; }
+esp_err_t esp_sleep_enable_timer_wakeup(uint64_t us) { sleepTimerUs = us; return 0; }
+esp_err_t esp_sleep_enable_gpio_wakeup() { return 0; }
+esp_err_t esp_light_sleep_start() {
+  const uint32_t started = emu::millis();
+  const uint32_t forMs = static_cast<uint32_t>(sleepTimerUs / 1000);
+  lastCause = ESP_SLEEP_WAKEUP_TIMER;
+  while (emu::millis() - started < forMs) {
+    if ((keyWake || buttonWake) && emu::wakePinLow()) { lastCause = ESP_SLEEP_WAKEUP_GPIO; break; }
+    emu::sleepMs(5);
+  }
+  asleepMs += emu::millis() - started;
+  return 0;
+}
+esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return lastCause; }
+namespace emu {
+uint64_t sleptMs() { return asleepMs.load(); }
+bool screenOff() { return M5Cardputer.Display.asleep() || M5Cardputer.Display.getBrightness() == 0; }
 }  // namespace emu
 
 void EmuButton::update() {
@@ -221,6 +260,8 @@ void startSpeaker() {
 }  // namespace
 
 void EmuDisplay::setBrightness(uint8_t value) { brightness_ = value; emu::powerSetBrightness(value); }
+void EmuDisplay::sleep() { asleep_ = true; emu::powerSetBrightness(0); }
+void EmuDisplay::wakeup() { asleep_ = false; emu::powerSetBrightness(brightness_); }
 void EmuSpeaker::setVolume(uint8_t value) { emu::powerSetVolume(value); }
 bool EmuSpeaker::begin() { emu::HostScope host; startSpeaker(); return true; }
 void EmuSpeaker::end() { stop(); }

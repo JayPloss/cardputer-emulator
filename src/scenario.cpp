@@ -131,6 +131,15 @@ int runScenario() {
       if (sscanf(rest.c_str(), "%d-%d-%d %d:%d:%d", &wall.tm_year, &wall.tm_mon, &wall.tm_mday, &wall.tm_hour, &wall.tm_min, &wall.tm_sec) != 6) return fail("clock wants YYYY-MM-DD HH:MM:SS");
       wall.tm_year -= 1900; wall.tm_mon -= 1; wall.tm_isdst = -1;
       setWallClock(mktime(&wall));
+    } else if (command == "expect-asleep") {
+      // expect-asleep seconds: at least this long in light sleep since the run began.
+      const double seconds = sleptMs() / 1000.0;
+      printf("[scenario] %.0f s asleep so far\n", seconds);
+      if (seconds < atof(rest.c_str())) return fail("only " + std::to_string(static_cast<int>(seconds)) + " s in light sleep");
+    } else if (command == "expect-screen-off") {
+      if (!screenOff()) return fail("the screen is on");
+    } else if (command == "expect-screen-on") {
+      if (screenOff()) return fail("the screen is off");
     } else if (command == "server-message") { serverMessage();
     } else if (command == "battery") {
       // battery mv, or battery from to minutes: a straight ramp on the virtual clock.

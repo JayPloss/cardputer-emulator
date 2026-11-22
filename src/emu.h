@@ -91,6 +91,9 @@ int clippedCount();
 // Keyboard input from scenarios and the window: physical (column, row) positions.
 void keySet(int x, int y, bool down);
 void buttonPress();
+bool wakePinLow();       // a held key or a pending rear-button press: what wakes light sleep
+uint64_t sleptMs();      // time spent in esp_light_sleep_start
+bool screenOff();        // the panel asleep, or the backlight at 0
 
 // The speaker, for scenarios.
 double audioSeconds();

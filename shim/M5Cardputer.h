@@ -39,6 +39,7 @@ class EmuCanvas : public EmuCanvasBase {
 
 class EmuDisplay : public EmuCanvas {
   uint8_t brightness_ = 127;
+  bool asleep_ = false;
 
  public:
   void setup();
@@ -46,6 +47,10 @@ class EmuDisplay : public EmuCanvas {
   void setBrightness(uint8_t value);
   // As LGFXBase: the last value set, from 127 until the firmware sets one.
   uint8_t getBrightness() const { return brightness_; }
+  // The panel's sleep (ST7789 sleep in): nothing shows until wakeup. `expect-screen-off` reads it.
+  void sleep();
+  void wakeup();
+  bool asleep() const { return asleep_; }
   void present();
   // Drawing directly to the panel (the splash) shows at once.
   size_t write(uint8_t c) override { const size_t written = EmuCanvas::write(c); commitText(); present(); return written; }
