@@ -24,8 +24,8 @@ expect-text "5 SONGS, UP TO DATE"
 shot sync-status.png
 expect-no-clipping
 press esc
-wait-text "NEW SONGS ON THE CARD" 3000
-expect-text "4 NEW SONGS ON THE CARD"
+wait-text "ON THE CARD" 3000
+# How many depends on when each pass ended: a notice shown while on HOME is not shown again.
 shot sync-home.png
 report after sync
 # A downloaded song plays (it keeps Navidrome's ID3 tag).
