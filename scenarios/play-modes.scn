@@ -1,0 +1,82 @@
+# time-scale 1
+# The music player's modes on songs from the card (the test album: three songs of 8 s): R cycles repeat
+# (all, one, off), M turns shuffle on and off, each shown as a tag. Repeat one plays the song again; shuffle
+# picks another song; repeat all goes from the last song back to the first. Books are not affected.
+wait-text "HOME" 60000
+press 2
+wait-text "CARD" 10000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+press enter
+wait-text "PLAYING" 20000
+expect-no-text "RPT"
+# The first hint line takes turns with the modes' keys.
+wait-text "M MIX" 8000
+shot play-modes-hint.png
+expect-no-clipping
+# Repeat one: Song 1 again when it ends.
+press r
+wait 300
+press r
+wait-text "RPT1" 2000
+wait 11000
+expect-text "Song 1"
+expect-text "PLAYING"
+# Repeat off, shuffle on: another song when it ends.
+press r
+wait 300
+expect-no-text "RPT"
+press m
+wait-text "MIX" 2000
+shot play-modes-mix.png
+expect-no-clipping
+wait 9000
+expect-no-text "01 Song 1"
+expect-text "PLAYING"
+# Shuffle off, repeat all: song 3, the last, then song 1 when it ends.
+press m
+wait 300
+press r
+wait-text "RPT" 2000
+expect-no-text "RPT1"
+press s
+wait-text "ON THE CARD" 5000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+press down
+wait 300
+press down
+wait 300
+press enter
+wait-text "03 Song 3" 5000
+wait-text "PLAYING" 10000
+wait 10000
+expect-text "01 Song 1"
+expect-text "PLAYING"
+# Right on the last song goes to the first, instead of leaving the player stopped.
+press r
+wait 300
+press r
+wait 300
+expect-no-text "RPT"
+press s
+wait-text "ON THE CARD" 5000
+press enter
+wait-text "Aaa Test Album" 30000
+press enter
+wait-text "01 Song 1" 30000
+press down
+wait 300
+press down
+wait 300
+press enter
+wait-text "PLAYING" 10000
+press right
+wait 2000
+expect-text "01 Song 1"
+expect-text "PLAYING"
+report modes done
