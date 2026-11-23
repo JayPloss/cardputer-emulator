@@ -10,8 +10,9 @@ wait 20000
 expect-tones 0 0
 # Someone posts: one notification.
 server-message
-wait 15000
-# The notification: 3 tones.
+# The notification: 3 tones, whenever the poll brings it; then time for any extra to show up.
+wait-tones 3 60000
+wait 5000
 expect-tones 3 3
 wait 20000
 expect-tones 0 0

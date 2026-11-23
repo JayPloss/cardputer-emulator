@@ -67,6 +67,7 @@ int batteryMv();
 bool ntpReachable();
 // Tones the firmware started, since the last count was taken.
 int takeToneCount();
+int peekToneCount();  // without resetting the count
 // The Wi-Fi networks in range. Behaviour says what a joined network lets through:
 // home (everything), nonav (internet, but the music server's address goes nowhere), captive
 // (joins, TLS fails at once), nointernet (joins, everything times out), joinfail (never joins).

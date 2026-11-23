@@ -287,6 +287,7 @@ size_t EmuSpeaker::isPlaying(uint8_t index) {
 }
 namespace { std::atomic<int> toneCount{0}; }
 int emu::takeToneCount() { return toneCount.exchange(0); }
+int emu::peekToneCount() { return toneCount.load(); }
 bool EmuSpeaker::tone(float, uint32_t ms, int channel, bool) {
   toneCount++;
   emu::HostScope host;

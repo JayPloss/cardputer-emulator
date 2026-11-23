@@ -148,6 +148,16 @@ int runScenario() {
       if (got == 1) setBattery(from, from, 0);
       else if (got == 3) setBattery(from, to, static_cast<uint32_t>(minutes) * 60000u);
       else return fail("battery wants mv, or from-mv to-mv minutes");
+    } else if (command == "wait-tones") {
+      // wait-tones n [timeout ms]: until n tones have started since the last expect-tones, so a check
+      // doesn't depend on how fast a loaded host delivers what makes them (notify-reboot, 2026-11-23).
+      int least = 1, timeout = 10000;
+      sscanf(rest.c_str(), "%d %d", &least, &timeout);
+      const uint32_t until = millis() + timeout;
+      while (peekToneCount() < least) {
+        if (millis() >= until) return fail("only " + std::to_string(peekToneCount()) + " tones by the timeout");
+        sleepMs(50);
+      }
     } else if (command == "expect-tones") {
       // expect-tones min [max]: tones started since the last expect-tones.
       int least = 0, most = -1;
