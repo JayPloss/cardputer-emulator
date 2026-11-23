@@ -224,9 +224,10 @@ def main():
             print(f'{name}: no such scenario'); failed += 1; continue
         if name in NEEDS_CARD and not Path(CARD).is_dir():
             print(f'{name}: SKIPPED, no card at {CARD}'); continue
-        if name == 'stream' and not server_reachable():
-            print('stream: SKIPPED, no music server reachable'); continue
         done = finished[name]
+        # Skipped when the pool's own reachability check said so: asking again could answer differently.
+        if done is None:
+            print(f'{name}: SKIPPED, no music server reachable'); continue
         ok = done.returncode == 0
         failed += 0 if ok else 1
         low = re.findall(r'lowest ever (\d+)', done.stdout)
