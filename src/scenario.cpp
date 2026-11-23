@@ -219,6 +219,18 @@ int runScenario() {
       fflush(stdout);
       execv("/proc/self/exe", args.data());
       return fail("reboot failed");
+    } else if (command == "spin" || command == "stall") {
+      // A core 0 task that is never blocked for <ms> of device time. spin works the CPU the whole time,
+      // which the watchdog must catch past 5 s; stall only waits on the host, as a task does when a
+      // loaded host doesn't schedule it, which it must not count (watchdog.scn).
+      struct Load { uint32_t ms; bool work; };
+      createTask([](void *raw) {
+        const Load load = *static_cast<Load *>(raw); delete static_cast<Load *>(raw);
+        const uint32_t until = millis() + load.ms;
+        if (load.work) { volatile uint64_t sum = 0; while (static_cast<int32_t>(until - millis()) > 0) for (int i = 0; i < 10000; i++) sum += i; }
+        else std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(load.ms / options.timeScale));
+        deleteCurrentTask();
+      }, command.c_str(), 8192, new Load{static_cast<uint32_t>(atoi(rest.c_str())), command == "spin"}, 1, 0);
     } else if (command == "expect-crash") { expectedCrash = strdup(unquote(rest).c_str()); }
     else if (command == "expect-file") {
       const auto quote = rest.find('"');

@@ -1,0 +1,9 @@
+# The core 0 watchdog counts work, not wall time (2026-11-23). A task the host leaves waiting is no
+# stall on the device; a task working the CPU for 8 s is, and the device would restart.
+wait-text "HOME" 60000
+stall 8000
+wait 10000
+expect-text "HOME"
+expect-crash "IDLE0 starved"
+spin 8000
+wait 10000

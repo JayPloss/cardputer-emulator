@@ -47,6 +47,12 @@ struct Task {
   void *heapBlock = nullptr;
   std::atomic<int> blocked{0};
   pthread_t thread{};
+  // What the watchdog counts as work: the thread's own CPU time on this host, and device time charged
+  // by chargeUs (decoding, SD, handshakes). Not wall time: a thread the host didn't schedule did nothing.
+  clockid_t cpuClock{};
+  std::atomic<bool> cpuClockReady{false};
+  std::atomic<uint64_t> chargedUs{0};
+  uint64_t seenCpuNs = 0, seenChargedUs = 0;  // the watchdog's last readings
 };
 std::vector<Task *> tasks;
 std::mutex taskLock;
@@ -64,6 +70,7 @@ size_t highWater(const Task &task) {
 void *taskMain(void *raw) {
   auto *task = static_cast<Task *>(raw);
   currentTask = task;
+  if (pthread_getcpuclockid(pthread_self(), &task->cpuClock) == 0) task->cpuClockReady = true;
   setHeapOwner(task->name.c_str());
   // Paint everything below this frame; the high-water mark is measured from here.
   volatile uint8_t marker = 0;
@@ -75,21 +82,39 @@ void *taskMain(void *raw) {
   return nullptr;
 }
 
+uint64_t cpuNs(const Task &task) {
+  timespec spent{};
+  if (!task.cpuClockReady || clock_gettime(task.cpuClock, &spent) != 0) return 0;
+  return uint64_t(spent.tv_sec) * 1000000000u + uint64_t(spent.tv_nsec);
+}
+
+// Core 0's idle task is starved when tasks there keep working for 5 s of device time without blocking.
+// Work is counted, not wall time: host CPU time scaled like the virtual clock, plus charged device time.
+// Counting wall time made a loaded host (the gate's parallel runs) look like a starved device: a task
+// the host left waiting one real second at --time-scale 5 read as 5 s of work (card-sync, 2026-11-23).
 void watchdogThread() {
   markHostThread();
+  double busyMs = 0;
   for (;;) {
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    const uint32_t now = millis();
     std::string running;
     bool idle = true;
+    double workedMs = 0;
     {
       std::lock_guard<std::mutex> guard(taskLock);
       for (Task *task : tasks) {
-        if (task->core == 0 && task->blocked.load() == 0) { idle = false; running += " " + task->name; }
+        if (task->core != 0) continue;
+        const uint64_t cpu = cpuNs(*task), charged = task->chargedUs.load();
+        const uint64_t cpuDelta = cpu - std::min(cpu, task->seenCpuNs), chargedDelta = charged - std::min(charged, task->seenChargedUs);
+        task->seenCpuNs = cpu; task->seenChargedUs = charged;
+        if (task->blocked.load() != 0) continue;
+        idle = false; running += " " + task->name;
+        workedMs += cpuDelta / 1e6 * options.timeScale + chargedDelta / 1e3;
       }
     }
-    if (idle) { lastIdle[0] = now; continue; }
-    if (now - lastIdle[0].load() > model::kWatchdogMs) {
+    if (idle) { busyMs = 0; lastIdle[0] = millis(); continue; }
+    busyMs += workedMs;
+    if (busyMs > model::kWatchdogMs) {
       std::string detail = "task watchdog: IDLE0 starved for 5 s; running on core 0:" + running;
       crash("task watchdog", detail.c_str());
     }
@@ -142,8 +167,8 @@ Blocked::Blocked() { if (currentTask) currentTask->blocked++; }
 Blocked::~Blocked() { if (currentTask) currentTask->blocked--; }
 
 void sleepMs(uint32_t ms) { Blocked blocked; realSleepUs(uint64_t(ms) * 1000); }
-void chargeUs(uint32_t us) { realSleepUs(us); }
-void chargeMs(uint32_t ms) { realSleepUs(uint64_t(ms) * 1000); }
+void chargeUs(uint32_t us) { if (currentTask) currentTask->chargedUs += us; realSleepUs(us); }
+void chargeMs(uint32_t ms) { if (currentTask) currentTask->chargedUs += uint64_t(ms) * 1000; realSleepUs(uint64_t(ms) * 1000); }
 
 void deleteCurrentTask() {
   Task *task = currentTask;
