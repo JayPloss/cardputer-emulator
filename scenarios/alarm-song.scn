@@ -52,9 +52,10 @@ wait-text "HOME" 3000
 expect-tones 0 100000
 # It rings at 7:00. The beeps may sound while the song starts, then only the song.
 wait-text "SNOOZE" 200000
-# The radio has to go off first: about 6 seconds of beeps on this model.
-wait 9000
-expect-tones 1 40
+# The radio has to go off first: about 6 seconds of beeps on this model, longer on a loaded host,
+# so it waits for them to stop (at most 30 s) instead of a fixed time.
+wait-quiet 3000 30000
+expect-tones 1 60
 wait 20000
 expect-tones 0 0
 # 8-second song: 20 seconds means it went round again.

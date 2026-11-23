@@ -158,6 +158,18 @@ int runScenario() {
         if (millis() >= until) return fail("only " + std::to_string(peekToneCount()) + " tones by the timeout");
         sleepMs(50);
       }
+    } else if (command == "wait-quiet") {
+      // wait-quiet quiet-ms [timeout ms]: until no tone has started for quiet-ms. The count isn't reset.
+      int quiet = 3000, timeout = 30000;
+      sscanf(rest.c_str(), "%d %d", &quiet, &timeout);
+      const uint32_t until = millis() + timeout;
+      int seen = peekToneCount(); uint32_t lastTone = millis();
+      while (millis() - lastTone < static_cast<uint32_t>(quiet)) {
+        if (millis() >= until) return fail("tones kept sounding for " + std::to_string(timeout / 1000) + " s");
+        sleepMs(50);
+        const int now = peekToneCount();
+        if (now != seen) { seen = now; lastTone = millis(); }
+      }
     } else if (command == "expect-tones") {
       // expect-tones min [max]: tones started since the last expect-tones.
       int least = 0, most = -1;
