@@ -18,4 +18,16 @@ shot alarm-noclock.png
 wait 75000
 expect-no-text "SNOOZE"
 expect-text "CLOCK NOT SET"
+# CLOCK on HOME says the same instead of showing the build time.
+press esc
+wait-text "HOME" 3000
+press down
+wait 300
+press left
+wait 300
+expect-text "CLOCK"
+press enter
+wait-text "CLOCK NOT SET YET" 3000
+expect-text "HOME"
+expect-no-clipping
 report no clock done

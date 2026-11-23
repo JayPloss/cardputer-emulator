@@ -4,9 +4,19 @@ wait-text "HOME" 60000
 press right
 wait 300
 press right
-wait-text "SCREEN" 3000
-press down
 wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait-text "SCREEN" 3000
 press enter
 wait-text "30 MIN" 3000
 expect-no-clipping

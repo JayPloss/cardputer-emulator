@@ -48,8 +48,19 @@ press enter
 wait-text "DEPART" 3000
 expect-no-clipping
 press esc
-press left
+expect-text "HORLOGE"
+press right
+wait-text "LANGUE" 3000
+press right
 wait 300
+press right
+wait 300
+press right
+wait 300
+press right
+wait-text "ECRAN" 3000
+expect-no-text "VERSIONS"
+expect-no-clipping
 press enter
 wait-text "TEMPS D'ECRAN" 3000
 expect-no-clipping
@@ -57,20 +68,16 @@ press enter
 wait-text "TEMPS RESTANT" 3000
 expect-no-clipping
 press esc
-wait-text "MINUTEUR" 3000
+wait-text "HOME" 3000
 wait-text "C'EST FINI" 120000
 expect-no-clipping
 shot fr-ringing.png
 wait 1200
 press a
 wait-text "TEMPS D'ECRAN" 3000
-press right
+press esc
 wait 300
-press right
-wait-text "LANGUE" 3000
-press right
-wait 300
-press right
+press left
 wait-text "VERSIONS" 3000
 expect-text "LOCAL NON"
 expect-no-clipping

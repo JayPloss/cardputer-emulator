@@ -1,0 +1,25 @@
+# time-scale 10
+# CLOCK on HOME, beside TIMER and ALARM, opens the big clock without waiting (Albie, 2026-11-22).
+# The first key brings HOME back and does nothing else. clock-noclock covers CLOCK before the time is set.
+wait-text "HOME" 60000
+clock 2026-11-12 16:20:00
+wait 3000
+press right
+wait 300
+press right
+wait-text "TIMER" 3000
+press down
+wait 300
+expect-text "CLOCK"
+press enter
+wait-text "THURSDAY 12 NOV" 5000
+expect-text "16:2"
+expect-no-text "HOME"
+expect-no-clipping
+shot clock-on-demand.png
+press 1
+wait 500
+expect-text "HOME"
+expect-text "CLOCK"
+expect-no-text "THURSDAY"
+report clock on demand done

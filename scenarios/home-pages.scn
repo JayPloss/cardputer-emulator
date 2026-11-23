@@ -11,7 +11,7 @@ wait 300
 press right
 wait-text "TIMER" 3000
 expect-text "STOPWATCH"
-expect-text "SCREEN"
+expect-text "CLOCK"
 expect-no-clipping
 shot page2.png
 press left
@@ -54,18 +54,31 @@ expect-text "CHANGELOG"
 expect-text "SYSTEM"
 expect-no-clipping
 shot page4.png
+# Page 5 is short: SCREEN alone. Right from the bottom row lands on it; its empty tiles bump.
 press right
 wait 300
 press right
+wait-text "SCREEN" 3000
+expect-no-text "SYSTEM"
+expect-no-clipping
+shot page5.png
+press right
 shot bump-right.png
-expect-text "CHANGELOG"
+expect-text "SCREEN"
 wait 400
-# Landing keeps the row, so this is the bottom right; the changelog is one to the left.
+press down
+wait 400
+expect-text "SCREEN"
+# Back to page 4 on the top row (LOCAL OFF); the changelog is bottom left.
 # Its first entry is this build. Back with the top-left key.
+press left
+wait-text "CHANGELOG" 3000
+press down
+wait 300
 press left
 wait 300
 press enter
-wait-text "v0.64" 3000
+wait-text "v0.65" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4
