@@ -1,4 +1,6 @@
-# No Wi-Fi since turning on: the clock is only the build time, so the alarm says so and never rings.
+# No Wi-Fi since turning on and never synced: the clock is unknown (v0.66). The alarm list says alarms ring once
+# Wi-Fi gives the time back, and the alarm never rings by a guessed clock; CLOCK still shows a time, in grey,
+# with one line asking for Wi-Fi, never a blank screen.
 wifi off
 wait-text "HOME" 15000
 press right
@@ -8,17 +10,17 @@ wait 300
 press right
 wait 300
 press enter
-wait-text "CLOCK NOT SET" 3000
+wait-text "TIME UNKNOWN: RINGS AFTER WI-FI" 3000
 expect-text "+ NEW ALARM"
 clock 2026-11-09 06:59:50
 type "0700"
-wait-text "CLOCK NOT SET" 3000
+wait-text "TIME UNKNOWN: RINGS AFTER WI-FI" 3000
 expect-no-clipping
 shot alarm-noclock.png
 wait 75000
 expect-no-text "SNOOZE"
-expect-text "CLOCK NOT SET"
-# CLOCK on HOME says the same instead of showing the build time.
+expect-text "TIME UNKNOWN"
+# CLOCK on HOME shows the guessed time and asks for Wi-Fi.
 press esc
 wait-text "HOME" 3000
 press down
@@ -27,7 +29,11 @@ press left
 wait 300
 expect-text "CLOCK"
 press enter
-wait-text "CLOCK NOT SET YET" 3000
-expect-text "HOME"
+wait-text "TIME UNKNOWN" 3000
+expect-text "CONNECT TO WI-FI"
+expect-text "ALARMS RING ONCE IT IS SET"
+expect-text ":"
+expect-no-text "HOME"
 expect-no-clipping
+shot clock-unknown.png
 report no clock done

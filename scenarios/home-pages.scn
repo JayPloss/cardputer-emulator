@@ -54,21 +54,27 @@ expect-text "CHANGELOG"
 expect-text "SYSTEM"
 expect-no-clipping
 shot page4.png
-# Page 5 is short: SCREEN alone. Right from the bottom row lands on it; its empty tiles bump.
+# Page 5 is short: SCREEN and AGENDA (v0.66) on its top row. Right from the bottom row lands on it;
+# its empty tiles bump.
 press right
 wait 300
 press right
 wait-text "SCREEN" 3000
+expect-text "AGENDA"
 expect-no-text "SYSTEM"
 expect-no-clipping
 shot page5.png
 press right
+wait 300
+press right
 shot bump-right.png
-expect-text "SCREEN"
+expect-text "AGENDA"
 wait 400
 press down
 wait 400
-expect-text "SCREEN"
+expect-text "AGENDA"
+press left
+wait 300
 # Back to page 4 on the top row (LOCAL OFF); the changelog is bottom left.
 # Its first entry is this build. Back with the top-left key.
 press left
@@ -78,7 +84,7 @@ wait 300
 press left
 wait 300
 press enter
-wait-text "v0.65" 3000
+wait-text "v0.66" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4

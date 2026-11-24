@@ -1,4 +1,6 @@
 # time-scale 10
+# v0.66: the clock lines below move the time with no time-server answer, so the clock reads as estimated and
+# the big clock marks the alarm ~07:00.
 # Real sleep: left alone, the idle clock comes at 2 minutes and the device sleeps at 10 (screen off, radio
 # off, light sleep). A key wakes it and does nothing else (1 would have opened chat). An alarm due while it
 # sleeps still rings on time. Left open on the idle clock, a device ran out overnight (Jay, 2026-11-22).
@@ -21,7 +23,7 @@ wait-text "HOME" 3000
 expect-screen-on
 # Two minutes: the idle clock. Ten: asleep.
 wait 130000
-expect-text "ALARM 07:00"
+expect-text "ALARM ~07:00"
 wait 500000
 expect-screen-off
 wait 60000

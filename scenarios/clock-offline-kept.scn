@@ -1,0 +1,37 @@
+# No network and a valid clock (Kidputer v0.66): synced once, then Wi-Fi gone and a restart. The chip kept the
+# time, so CLOCK shows it plainly, with no "unknown" line; 7 hours later it is marked ESTIMATED, never blank.
+# (A clock lost with the power can't be shown here: the emulator's clock always runs. See the gate's list.)
+wait-text "HOME" 60000
+wait 3000
+wifi off
+reboot
+wifi off
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press down
+wait 300
+press left
+wait 300
+press enter
+wait 1500
+expect-no-text "TIME UNKNOWN"
+expect-no-text "ESTIMATED"
+expect-text ":"
+expect-no-clipping
+shot clock-kept.png
+press esc
+wait-text "HOME" 3000
+wait-text "OFFLINE" 3000
+clock 2026-11-25 07:30:00
+press enter
+wait-text "ESTIMATED" 3000
+expect-no-text "TIME UNKNOWN"
+expect-text "WEDNESDAY 25 NOV"
+expect-no-clipping
+shot clock-estimated.png
+report clock kept done

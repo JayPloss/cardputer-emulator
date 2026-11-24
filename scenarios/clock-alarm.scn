@@ -68,14 +68,22 @@ wait 1200
 press a
 wait 500
 expect-no-text "SNOOZE"
-# Chat is a text screen: the top-left key needs Fn there.
-chord fn esc
+# v0.66: the first snooze of a morning alarm opens the Morning Overview; with no brief on the card it says so.
+wait-text "MORNING" 3000
+expect-text "No morning report"
+expect-no-clipping
+shot morning-after-snooze.png
+press esc
 wait-text "ALARM SNOOZED" 3000
 wait-text "OTHER KEY: SNOOZE" 320000
 wait 1200
 press enter
 wait 500
 expect-no-text "SNOOZE"
+# The stop after the snooze opens it again, without playing it a second time.
+wait-text "MORNING" 3000
+press esc
+wait-text "HOME" 3000
 # The next morning, charging, with the screen dim: the alarm brings it back and rings.
 clock 2026-11-10 06:59:20
 press right
@@ -102,7 +110,9 @@ wait 1500
 expect-tones 4
 press enter
 wait 500
-expect-text "HOME"
+wait-text "MORNING" 3000
+press esc
+wait-text "HOME" 3000
 # Saturday: 7:00 is a weekday alarm and stays quiet; 9:30 is the weekend one and rings.
 clock 2026-11-14 06:59:30
 wait 75000
@@ -114,5 +124,7 @@ shot alarm-weekend.png
 wait 1200
 press enter
 wait 500
-expect-text "HOME"
+wait-text "MORNING" 3000
+press esc
+wait-text "HOME" 3000
 report alarm done

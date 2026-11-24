@@ -1,0 +1,108 @@
+# Morning Overview (Kidputer v0.66): a 7:00 alarm on a clock kept since its last sync (estimated) still rings;
+# its first snooze opens MORNING and plays the day's brief from the card (a real generator-encoded MP3), the
+# text scrolls, Right opens AGENDA (weather, events, the school-night stop), which scrolls too. The stop after
+# the snooze opens MORNING again without playing it a second time. LANGUAGE set to French: the French text,
+# AGENDA and sound, from the same card, with no network needed.
+wait-text "HOME" 60000
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+# Wednesday, 18 h after the boot's sync: estimated.
+clock 2026-11-25 06:59:10
+type "0700"
+wait-text "~NEXT RINGS IN" 3000
+wait-text "SNOOZE" 70000
+wait 1200
+press a
+wait-text "MORNING" 3000
+expect-text "WEDNESDAY 25 NOV"
+expect-text "ESTIMATED"
+expect-text "Good morning"
+wait-text "PLAYING" 20000
+expect-no-clipping
+shot morning-playing.png
+wait 10000
+expect-audio 8
+expect-underruns 0
+press down
+wait 200
+press down
+wait 200
+press down
+wait 300
+expect-no-text "Good morning"
+expect-text "-7 degrees"
+shot morning-scrolled.png
+press right
+wait-text "LEFT MORNING" 3000
+expect-text "It's -7, partly"
+expect-text "08:15 Swimming"
+expect-no-text "21:30"
+expect-no-clipping
+shot agenda.png
+press down
+wait 200
+press down
+wait 200
+press down
+wait 200
+press down
+wait 300
+expect-text "21:30 Book stops"
+expect-no-text "08:15 Swimming"
+shot agenda-scrolled.png
+press left
+wait-text "-7 degrees" 3000
+press esc
+wait-text "HOME" 3000
+# The snooze rings again; stopping it opens MORNING, silent this time.
+wait-text "OTHER KEY: SNOOZE" 320000
+wait 1200
+press enter
+wait-text "MORNING" 3000
+wait 4000
+expect-no-text "PLAYING"
+expect-no-text "STARTING"
+expect-text "UP/DOWN READ ENTER PLAY RIGHT AGENDA"
+# LANGUAGE to French (Left from AUTO), then AGENDA from HOME's last page and back to the brief.
+press esc
+wait-text "HOME" 3000
+press right
+wait 300
+press down
+wait 300
+press right
+wait-text "LANGUAGE" 3000
+press enter
+wait 500
+press left
+wait 500
+press enter
+wait-text "LANGUE" 3000
+press right
+wait 300
+press right
+wait 300
+press right
+wait 300
+press enter
+wait-text "GAUCHE BONJOUR" 3000
+expect-text "08:15 Natation"
+expect-text "MERCREDI 25 NOV"
+expect-no-clipping
+shot agenda-fr.png
+press left
+wait-text "Bonjour Testeur" 3000
+expect-text "ENTER JOUER"
+expect-no-clipping
+press enter
+wait-text "LECTURE" 20000
+shot morning-fr.png
+wait 10000
+expect-audio 16
+report morning done

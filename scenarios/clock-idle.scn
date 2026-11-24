@@ -1,4 +1,6 @@
 # time-scale 10
+# v0.66: the clock lines below move the time with no time-server answer, so the clock reads as estimated and
+# the big clock marks the alarm ~07:00.
 # The big clock: two minutes without a key turns any app into the 24-hour time, the date and the
 # next alarm, dimmer at bedtime. The first key only brings the app back; a key typed then does nothing.
 wait-text "HOME" 60000
@@ -18,8 +20,8 @@ wait-text "HOME" 3000
 clock 2026-11-12 21:00:00
 wait 110000
 expect-text "HOME"
-expect-no-text "ALARM 07:00"
-wait-text "ALARM 07:00" 15000
+expect-no-text "ALARM ~07:00"
+wait-text "ALARM ~07:00" 15000
 expect-text "THURSDAY 12 NOV"
 expect-text "IN 9 H"
 expect-text "21:01"
@@ -29,11 +31,11 @@ expect-no-clipping
 press 1
 wait 500
 expect-text "HOME"
-expect-no-text "ALARM 07:00"
+expect-no-text "ALARM ~07:00"
 # The morning, past the alarm's ring (Friday 07:00 rang): the next is Monday, so it names the day.
 clock 2026-11-14 10:00:00
 wait 125000
-wait-text "ALARM 07:00" 5000
+wait-text "ALARM ~07:00" 5000
 expect-text "SATURDAY 14 NOV"
 expect-text "MONDAY"
 shot idle-clock-day.png

@@ -64,7 +64,8 @@ expect-underruns 0
 shot alarm-song-ringing.png
 press enter
 wait 1500
-expect-text "HOME"
+# v0.66: stopping a morning alarm opens the Morning Overview.
+expect-text "MORNING"
 expect-no-text "SNOOZE"
 wait 5000
 expect-tones 0 0
@@ -76,5 +77,5 @@ wait 15000
 expect-tones 20
 press enter
 wait 1500
-expect-text "HOME"
+expect-text "MORNING"
 report alarm song done
