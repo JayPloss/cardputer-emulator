@@ -131,6 +131,20 @@ int runScenario() {
       if (sscanf(rest.c_str(), "%d-%d-%d %d:%d:%d", &wall.tm_year, &wall.tm_mon, &wall.tm_mday, &wall.tm_hour, &wall.tm_min, &wall.tm_sec) != 6) return fail("clock wants YYYY-MM-DD HH:MM:SS");
       wall.tm_year -= 1900; wall.tm_mon -= 1; wall.tm_isdst = -1;
       setWallClock(mktime(&wall));
+    } else if (command == "clock-drift") {
+      // clock-drift percent: the chip's clock runs this much fast (+) or slow (-) in light sleep.
+      setSleepDrift(atof(rest.c_str()) / 100.0);
+    } else if (command == "expect-world-time") {
+      // expect-world-time HH:MM:SS HH:MM:SS: the world's time (not the chip's) is in this range, local time.
+      int h1 = 0, m1 = 0, s1 = 0, h2 = 0, m2 = 0, s2 = 0;
+      if (sscanf(rest.c_str(), "%d:%d:%d %d:%d:%d", &h1, &m1, &s1, &h2, &m2, &s2) != 6) return fail("expect-world-time wants HH:MM:SS HH:MM:SS");
+      const time_t world = wallClock();
+      struct tm local{}; localtime_r(&world, &local);
+      const int at = local.tm_hour * 3600 + local.tm_min * 60 + local.tm_sec;
+      const time_t chip = static_cast<time_t>(chipUs() / 1000000);
+      struct tm chipLocal{}; localtime_r(&chip, &chipLocal);
+      printf("[scenario] world %02d:%02d:%02d, chip %02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec, chipLocal.tm_hour, chipLocal.tm_min, chipLocal.tm_sec);
+      if (at < h1 * 3600 + m1 * 60 + s1 || at > h2 * 3600 + m2 * 60 + s2) return fail("the world's time is outside the range");
     } else if (command == "expect-asleep") {
       // expect-asleep seconds: at least this long in light sleep since the run began.
       const double seconds = sleptMs() / 1000.0;

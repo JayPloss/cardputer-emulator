@@ -8,7 +8,10 @@
 #include <unistd.h>
 #include <vector>
 
+#include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <thread>
 #include <cerrno>
 #include <cstdio>
 #include <fstream>
@@ -34,7 +37,19 @@ long random(long low, long high) { return low + random(high - low); }
 bool setCpuFrequencyMhz(uint32_t) { return true; }
 // The wall clock runs on the virtual clock, from the host's time at start or from a scenario's
 // `clock` line, so a sped-up run's clock speeds up with it, as the device's would.
-namespace { time_t wallBase = 0; uint32_t wallBaseMs = 0; sntp_sync_time_cb_t sntpCallback = nullptr; }
+namespace {
+time_t wallBase = 0; uint32_t wallBaseMs = 0; sntp_sync_time_cb_t sntpCallback = nullptr;
+std::atomic<int64_t> chipOffsetUs{0};
+std::atomic<double> sleepDriftRate{0};
+sntp_sync_status_t sntpStatus = SNTP_SYNC_STATUS_RESET;
+// The SNTP client stand-in's schedule, on the virtual clock.
+std::mutex sntpLock;
+bool sntpStarted = false;
+uint32_t sntpNextAskMs = 0, sntpRetryMs = 15000;
+constexpr uint32_t kSntpUpdateMs = 10800000;  // CONFIG_LWIP_SNTP_UPDATE_DELAY in the framework's sdkconfig
+constexpr uint32_t kSntpRetryMs = 15000, kSntpRetryMaxMs = 150000;  // lwIP's SNTP_RETRY_TIMEOUT, x10 at most
+constexpr uint32_t kSntpReplyMs = 300;  // a request's round trip
+}
 namespace emu {
 namespace { int batteryFromMv = 3986, batteryToMv = 3986; uint32_t batteryRampAt = 0, batteryRampMs = 0; }
 void setBattery(int fromMv, int toMv, uint32_t overMs) { batteryFromMv = fromMv; batteryToMv = toMv; batteryRampAt = emu::millis(); batteryRampMs = overMs; }
@@ -43,19 +58,80 @@ int batteryMv() {
   if (!batteryRampMs || done >= batteryRampMs) return batteryToMv;
   return batteryFromMv + static_cast<int>(static_cast<int64_t>(batteryToMv - batteryFromMv) * done / batteryRampMs);
 }
-void setWallClock(time_t epoch) { wallBase = epoch; wallBaseMs = emu::millis(); }
+void setWallClock(time_t epoch) { wallBase = epoch; wallBaseMs = emu::millis(); chipOffsetUs = 0; }
 time_t wallClock() {
   if (!wallBase) setWallClock(time(nullptr));
   return wallBase + static_cast<time_t>((emu::millis() - wallBaseMs) / 1000);
 }
+int64_t worldUs() {
+  if (!wallBase) setWallClock(time(nullptr));
+  return static_cast<int64_t>(wallBase) * 1000000 + static_cast<int64_t>(emu::micros() - static_cast<uint64_t>(wallBaseMs) * 1000);
+}
+int64_t chipUs() { return worldUs() + chipOffsetUs.load(); }
+void setSleepDrift(double rate) { sleepDriftRate = rate; }
+double sleepDrift() { return sleepDriftRate.load(); }
+void addChipOffsetUs(int64_t us) { chipOffsetUs += us; }
 }  // namespace emu
+int emuSetTimeOfDay(const struct timeval *value) {
+  if (!value) return -1;
+  chipOffsetUs = static_cast<int64_t>(value->tv_sec) * 1000000 + value->tv_usec - emu::worldUs();
+  return 0;
+}
 void sntp_set_time_sync_notification_cb(sntp_sync_time_cb_t callback) { sntpCallback = callback; }
+void sntp_set_sync_status(sntp_sync_status_t status) { sntpStatus = status; }
+sntp_sync_status_t sntp_get_sync_status() { return sntpStatus; }
+// ESP-IDF's default, used when the firmware doesn't replace it.
+extern "C" __attribute__((weak)) void sntp_sync_time(struct timeval *tv) {
+  settimeofday(tv, nullptr);
+  sntp_set_sync_status(SNTP_SYNC_STATUS_COMPLETED);
+  if (sntpCallback) sntpCallback(tv);
+}
+namespace {
+// lwIP's SNTP task, in a host thread: asks on its schedule; a joined network with the internet answers
+// after a round trip with the world's time, anything else is a failed ask and a longer wait.
+void sntpThread() {
+  emu::markHostThread();
+  for (;;) {
+    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(50 / emu::options.timeScale));
+    {
+      std::lock_guard<std::mutex> guard(sntpLock);
+      if (static_cast<int32_t>(emu::millis() - sntpNextAskMs) < 0) continue;
+    }
+    const bool reachable = emu::ntpReachable();
+    if (reachable) {
+      const uint32_t sent = emu::millis();
+      while (emu::millis() - sent < kSntpReplyMs) std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(10 / emu::options.timeScale));
+    }
+    std::lock_guard<std::mutex> guard(sntpLock);
+    if (reachable && emu::ntpReachable()) {
+      const int64_t world = emu::worldUs();
+      timeval now{static_cast<time_t>(world / 1000000), static_cast<suseconds_t>(world % 1000000)};
+      sntp_sync_time(&now);
+      sntpNextAskMs = emu::millis() + kSntpUpdateMs; sntpRetryMs = kSntpRetryMs;
+    } else {
+      sntpNextAskMs = emu::millis() + sntpRetryMs; sntpRetryMs = std::min(sntpRetryMs * 2, kSntpRetryMaxMs);
+    }
+  }
+}
+void sntpStart() {
+  std::lock_guard<std::mutex> guard(sntpLock);
+  sntpNextAskMs = emu::millis(); sntpRetryMs = kSntpRetryMs;
+  if (!sntpStarted) { sntpStarted = true; std::thread(sntpThread).detach(); }
+}
+}  // namespace
 void configTzTime(const char *tz, const char *, const char *, const char *) {
   setenv("TZ", tz, 1); tzset();
-  if (sntpCallback && emu::ntpReachable()) { timeval now{emu::wallClock(), 0}; sntpCallback(&now); }
+  emu::HostScope host;
+  sntpStart();
+}
+bool sntp_restart() {
+  emu::HostScope host;
+  { std::lock_guard<std::mutex> guard(sntpLock); if (!sntpStarted) return false; }
+  sntpStart();
+  return true;
 }
 bool getLocalTime(struct tm *info, uint32_t) {
-  const time_t now = emu::wallClock();
+  const time_t now = static_cast<time_t>(emu::chipUs() / 1000000);
   localtime_r(&now, info);
   return true;
 }

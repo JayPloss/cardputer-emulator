@@ -148,17 +148,24 @@ esp_err_t esp_sleep_enable_timer_wakeup(uint64_t us) { sleepTimerUs = us; return
 esp_err_t esp_sleep_enable_gpio_wakeup() { return 0; }
 // No timer: only a key or the button wakes it (the chip sleeps until then).
 esp_err_t esp_sleep_disable_wakeup_source(esp_sleep_wakeup_cause_t source) { if (source == ESP_SLEEP_WAKEUP_TIMER) sleepTimerUs = UINT64_MAX / 2; return 0; }
+// The sleep timer counts on the chip's internal oscillator: with a drift rate r (`clock-drift`), its forMs
+// pass in forMs / (1 + r) of the world's time, and the chip's clock gains r of every world second asleep.
+// Not covered: millis() through light sleep, which runs on that oscillator too on the device and on the
+// world's time here; the firmware's drift measurement reads the chip's clock, not millis().
 esp_err_t esp_light_sleep_start() {
   const uint32_t started = emu::millis();
   sleepStartedAt = started; inSleep = true;
-  const uint64_t forMs = sleepTimerUs / 1000;
+  const double rate = emu::sleepDrift();
+  const uint64_t forMs = rate > -0.99 ? static_cast<uint64_t>(sleepTimerUs / 1000 / (1 + rate)) : sleepTimerUs / 1000;
   lastCause = ESP_SLEEP_WAKEUP_TIMER;
   while (emu::millis() - started < forMs) {
     if ((keyWake || buttonWake) && emu::wakePinLow()) { lastCause = ESP_SLEEP_WAKEUP_GPIO; break; }
     emu::sleepMs(5);
   }
   inSleep = false;
-  asleepMs += emu::millis() - started;
+  const uint32_t sleptWorldMs = emu::millis() - started;
+  asleepMs += sleptWorldMs;
+  if (rate != 0) emu::addChipOffsetUs(static_cast<int64_t>(sleptWorldMs * 1000.0 * rate));
   return 0;
 }
 esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return lastCause; }

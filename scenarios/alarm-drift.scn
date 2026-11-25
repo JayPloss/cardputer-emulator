@@ -1,0 +1,57 @@
+# time-scale 20
+# v0.67's pre-alarm clock check. In light sleep the chip's clock runs 50 % fast here: an exaggerated stand-in
+# for the drift likely behind Albie's 07:00 alarm ringing at 06:30 (2026-11-25). With Wi-Fi, the device wakes
+# before the alarm by its own clock, asks the time servers, and rings at 07:00 by the world's time. Without
+# Wi-Fi it rings by the chip's clock, as before: early, at about 06:39.
+wait-text "HOME" 60000
+clock 2026-11-09 05:48:00
+press right
+wait 300
+press right
+wait-text "ALARM" 3000
+press right
+wait 300
+press enter
+wait-text "+ NEW ALARM" 3000
+type "0700"
+wait-text "7:00 AM" 3000
+press esc
+wait-text "HOME" 3000
+clock-drift 50
+# Left alone: the idle clock at 2 minutes, light sleep at 10.
+wait 720000
+expect-screen-off
+expect-world-time 05:59:00 06:01:00
+# Without the check this rings when the chip says 07:00, about 06:39 in the world.
+wait-text "SNOOZE" 4000000
+expect-world-time 07:00:00 07:00:59
+shot alarm-drift-ringing.png
+expect-no-clipping
+expect-file supachat-clock.csv "alarm-check"
+wait 1200
+press enter
+wait-text "MORNING" 5000
+press esc
+wait-text "HOME" 3000
+# STATUS, page 2: what the last answer corrected, and how long of it was asleep. HOME is on ALARM's page.
+expect-text "ALARM"
+press right
+wait-text "WI-FI" 3000
+press down
+wait 300
+press enter
+wait-text "LEFT/RIGHT PAGE" 3000
+press right
+wait-text "DRIFT" 3000
+expect-text "asleep"
+shot alarm-drift-status.png
+expect-no-clipping
+button
+wait-text "HOME" 3000
+# Tuesday, no Wi-Fi: no answer, so it rings by the chip's clock, early, as before v0.67.
+clock 2026-11-10 05:48:00
+wifi off
+wait 720000
+expect-screen-off
+wait-text "SNOOZE" 4000000
+expect-world-time 06:37:00 06:42:00

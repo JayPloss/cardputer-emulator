@@ -1,0 +1,15 @@
+# time-scale 40
+# v0.67's nightly clock check (Jay, 2026-11-25): asleep at night with the chip's clock running 50 % fast in
+# light sleep, the device wakes at 05:00 by its own clock, asks the time servers once, and sleeps again on
+# the corrected clock. The log on the card says the answer came from the nightly check.
+wait-text "HOME" 60000
+clock 2026-11-09 02:00:00
+clock-drift 50
+wait 720000
+expect-screen-off
+# The chip reaches 05:00 at about 04:03 in the world; the check sets it back and the device sleeps on
+# (04:22 is just where the scenario looks).
+wait 7800000
+expect-world-time 04:21:00 04:23:00
+expect-screen-off
+expect-file supachat-clock.csv "night-check"

@@ -4,8 +4,9 @@
 wait-text "HOME" 60000
 wait 30000
 report first boot settled
-# The startup melody: 113 or 114 tones on v0.61 (timing); a notification would add 3.
-expect-tones 112 115
+# The startup melody: 113 or 114 tones on v0.61 (timing), about 3 more since v0.67: the time server answers
+# after a round trip (300 ms) instead of at once, as on a device; a notification would add 3.
+expect-tones 113 117
 wait 20000
 expect-tones 0 0
 # Someone posts: one notification.
@@ -21,6 +22,6 @@ wait-text "HOME" 60000
 wait 30000
 report after restart
 # The same melody and nothing more: no notification for the message already seen.
-expect-tones 112 115
+expect-tones 113 117
 wait 20000
 expect-tones 0 0

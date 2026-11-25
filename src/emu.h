@@ -56,8 +56,18 @@ struct Options {
 extern Options options;
 extern bool wifiAvailable;
 // The wall clock, on the virtual clock; a scenario's `clock` line sets it.
+// The world's time (what a time server says) runs on the virtual clock. The chip's clock is the world's
+// plus an offset: settimeofday sets it, and light sleep adds to it at the drift rate, since the chip
+// counts sleep on its internal oscillator (no 32 kHz crystal on the ADV). `clock` sets both.
 void setWallClock(time_t epoch);
 time_t wallClock();
+int64_t worldUs();
+int64_t chipUs();
+// clock-drift: how much faster (+) or slower (-) than the world the chip counts while in light sleep,
+// as a fraction (0.05 is 5 % fast).
+void setSleepDrift(double rate);
+double sleepDrift();
+void addChipOffsetUs(int64_t us);
 // The battery's voltage at GPIO10 as M5Unified reports it; a scenario's `battery` line sets or ramps it.
 void setBattery(int fromMv, int toMv, uint32_t overMs);
 // The server stand-in: Other posts one more message in Family.

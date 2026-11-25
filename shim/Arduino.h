@@ -28,7 +28,9 @@
 #include <IPAddress.h>
 
 #include <sys/time.h>
-#define settimeofday(tv, tz) (0)
+// The chip's clock: settimeofday sets it (src/arduino_impl.cpp), getLocalTime reads it.
+int emuSetTimeOfDay(const struct timeval *value);
+#define settimeofday(tv, tz) emuSetTimeOfDay(tv)
 typedef enum { GPIO_NUM_0 = 0, GPIO_NUM_11 = 11, GPIO_NUM_12 = 12, GPIO_NUM_14 = 14, GPIO_NUM_39 = 39, GPIO_NUM_40 = 40 } gpio_num_t;
 using std::min;
 using std::max;
