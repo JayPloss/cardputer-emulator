@@ -276,6 +276,14 @@ int runScenario() {
     } else if (command == "expect-audio") {
       if (audioSeconds() < atof(rest.c_str())) return fail("only " + std::to_string(audioSeconds()) + " s of audio played");
       if (audioLevel() < 1) return fail("the audio is silent");
+    } else if (command == "expect-volume") {
+      // expect-volume channel min [max]: loudness 0..255, master x channel / 255, of what that speaker
+      // channel plays now, else of its last sound. Channel 1 is the player's, 0 tones and voice messages.
+      int channel = 0, least = 0, most = 255;
+      if (sscanf(rest.c_str(), "%d %d %d", &channel, &least, &most) < 2) return fail("expect-volume wants a channel and a minimum");
+      const int value = soundVolume(channel);
+      printf("[scenario] channel %d volume %d\n", channel, value);
+      if (value < least || value > most) return fail("channel " + std::to_string(channel) + " volume is " + std::to_string(value));
     } else if (command == "expect-underruns") {
       if (audioUnderruns() > atoi(rest.c_str())) return fail(std::to_string(audioUnderruns()) + " underruns");
     } else if (command == "expect-heap-free") {

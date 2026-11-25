@@ -61,8 +61,13 @@ class EmuSpeaker {
  public:
   bool begin();
   void end();
-  void setChannelVolume(uint8_t, uint8_t) {}
+  // Master and channel volumes as M5Unified keeps them: both squared and multiplied into each sample
+  // (Speaker_Class.inl). The speaker thread scales what it measures and records by them.
+  void setChannelVolume(uint8_t channel, uint8_t value);
+  void setAllChannelVolume(uint8_t value);
+  uint8_t getChannelVolume(uint8_t channel) const;
   void setVolume(uint8_t value);
+  uint8_t getVolume() const;
   void stop();
   void stop(uint8_t channel);
   size_t isPlaying(uint8_t channel);

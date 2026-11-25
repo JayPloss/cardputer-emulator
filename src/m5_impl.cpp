@@ -195,6 +195,13 @@ std::atomic<int> underruns{0};
 std::atomic<uint64_t> playedSamples{0};
 std::atomic<uint32_t> playedRate{0};
 std::atomic<double> level{0};
+// M5Unified starts its master at 64 and every channel at 255 (Speaker_Class.hpp).
+std::atomic<int> masterVolume{64};
+std::atomic<int> channelVolume[kChannels] = {255, 255, 255, 255, 255, 255, 255, 255};
+// The loudness (master x channel / 255) of the last sound started on each channel, -1 if none yet.
+std::atomic<int> startedVolume[kChannels] = {-1, -1, -1, -1, -1, -1, -1, -1};
+int effectiveVolume(int index) { return masterVolume.load() * channelVolume[index].load() / 255; }
+double channelGain(int index) { const double m = masterVolume.load() / 255.0, c = channelVolume[index].load() / 255.0; return m * m * c * c; }
 FILE *wav = nullptr;
 uint64_t wavSamples = 0;
 uint32_t wavRate = 0;
@@ -240,8 +247,10 @@ void speakerThread() {
         const size_t take = std::min<size_t>(remaining, static_cast<size_t>(budget) + 1);
         // Reads the firmware's own buffer as the DMA does: freed too early, ASan objects.
         const int step = channel.now.stereo ? 2 : 1;
+        const double gain = channelGain(index);
         for (size_t i = 0; i < take; i += step) {
-          const int16_t sample = channel.now.data[position + i];
+          // What reaches the amplifier: the firmware's sample scaled by its volumes, as on the device.
+          const int16_t sample = static_cast<int16_t>(channel.now.data[position + i] * gain);
           energy += double(sample) * sample; energyCount++;
           if (index == 1 && wav) { fwrite(&sample, 2, 1, wav); wavSamples++; }
         }
@@ -268,7 +277,15 @@ void startSpeaker() {
 void EmuDisplay::setBrightness(uint8_t value) { brightness_ = value; emu::powerSetBrightness(value); }
 void EmuDisplay::sleep() { asleep_ = true; emu::powerSetBrightness(0); }
 void EmuDisplay::wakeup() { asleep_ = false; emu::powerSetBrightness(brightness_); }
-void EmuSpeaker::setVolume(uint8_t value) { emu::powerSetVolume(value); }
+// The power model is fitted to speech at a volume: the player's channel (1) is the one that speaks.
+void EmuSpeaker::setVolume(uint8_t value) { masterVolume = value; emu::powerSetVolume(effectiveVolume(1)); }
+uint8_t EmuSpeaker::getVolume() const { return masterVolume.load(); }
+void EmuSpeaker::setChannelVolume(uint8_t index, uint8_t value) {
+  if (index >= kChannels) return;
+  channelVolume[index] = value; emu::powerSetVolume(effectiveVolume(1));
+}
+void EmuSpeaker::setAllChannelVolume(uint8_t value) { for (int i = 0; i < kChannels; i++) channelVolume[i] = value; emu::powerSetVolume(effectiveVolume(1)); }
+uint8_t EmuSpeaker::getChannelVolume(uint8_t index) const { return index < kChannels ? channelVolume[index].load() : 0; }
 bool EmuSpeaker::begin() { emu::HostScope host; startSpeaker(); return true; }
 void EmuSpeaker::end() { stop(); }
 void EmuSpeaker::stop() { for (int i = 0; i < kChannels; i++) stop(i); }
@@ -294,6 +311,7 @@ bool EmuSpeaker::tone(float, uint32_t ms, int channel, bool) {
   startSpeaker();
   std::lock_guard<std::mutex> guard(speakerLock);
   const int index = channel < 0 ? 0 : channel;
+  startedVolume[index] = effectiveVolume(index);
   channels[index].now = Slot{}; channels[index].next = Slot{};
   channels[index].now.toneEnd = emu::micros() + uint64_t(ms) * 1000;
   return true;
@@ -303,6 +321,7 @@ bool EmuSpeaker::playRaw(const int16_t *data, size_t samples, uint32_t rate, boo
   startSpeaker();
   std::lock_guard<std::mutex> guard(speakerLock);
   const int index = channel < 0 ? 0 : channel;
+  startedVolume[index] = effectiveVolume(index);
   Channel &target = channels[index];
   Slot slot; slot.data = data; slot.samples = samples; slot.rate = rate; slot.stereo = stereo; slot.repeat = repeat;
   if (stopCurrent) { target.now = slot; target.next = Slot{}; target.position = 0; return true; }
@@ -326,4 +345,12 @@ namespace emu {
 double audioSeconds() { const uint32_t rate = playedRate; return rate ? double(playedSamples) / rate : 0; }
 int audioUnderruns() { return underruns; }
 double audioLevel() { return level; }
+int soundVolume(int index) {
+  if (index < 0 || index >= kChannels) return -1;
+  std::lock_guard<std::mutex> guard(speakerLock);
+  const Channel &channel = channels[index];
+  // Playing now: its volume now (a fade changes it mid-sound). Otherwise as its last sound started.
+  if (channel.now.data || channel.now.toneEnd) return effectiveVolume(index);
+  return startedVolume[index].load();
+}
 }  // namespace emu

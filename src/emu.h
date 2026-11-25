@@ -100,6 +100,8 @@ bool screenOff();        // the panel asleep, or the backlight at 0
 double audioSeconds();
 int audioUnderruns();
 double audioLevel();
+// Loudness 0..255 (master x channel / 255) of what a speaker channel plays now, else of its last sound; -1 if none.
+int soundVolume(int channel);
 
 // Battery prediction, once a fitted model is loaded (src/power.cpp).
 void powerLoad(const char *path, double startLevel);

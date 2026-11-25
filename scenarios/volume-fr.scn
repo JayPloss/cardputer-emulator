@@ -1,0 +1,43 @@
+# v0.67's VOLUME screen on a French build, offline so no room's language overrides it: ALARME,
+# SYSTEME and MEDIAS with their values and hints fit the screen; the players show the media volume.
+wifi off
+wait-text "MUSIQUE" 15000
+press 0
+wait 500
+button
+wait 500
+press right
+wait 300
+press right
+wait-text "MINUTEUR" 3000
+press right
+wait 300
+press right
+wait-text "WI-FI" 3000
+press right
+wait 300
+press enter
+wait-text "MEDIAS" 3000
+expect-text "15/20"
+expect-text "SYSTEME"
+expect-text "ALARME"
+expect-text "FORT"
+expect-text "HAUT/BAS CHOISIR GAUCHE/DROITE REGLER"
+expect-text "OK RETOUR"
+shot volume-fr.png
+expect-no-clipping
+press left left left left left left left left left left left left left left left
+wait 500
+expect-text "MUET"
+press up
+wait 300
+press left
+wait 300
+expect-text "MOYEN"
+press up
+wait 300
+press left left left
+wait 500
+expect-text "BAS"
+shot volume-fr-rows.png
+expect-no-clipping
