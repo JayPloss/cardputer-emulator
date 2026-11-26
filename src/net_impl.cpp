@@ -9,7 +9,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cstdio>
 #include <map>
 #include <mutex>
@@ -28,6 +30,14 @@ std::vector<SimNet> nets = {{"EMU-LAN", "emu", "home"}};
 std::string joinedSsid, joinedBehaviour;
 std::atomic<bool> joined{false};
 std::atomic<int> scansRunning{0};
+// What a scan sees: the joinable networks (signal set by `ap`, else -50 dBm and down by list position), then
+// the access points that are only in the air (`ap`). BSSIDs are fixed per network so places can learn them.
+struct AirAp { uint8_t bssid[6]; int rssi; std::string ssid; };
+std::vector<AirAp> air;
+std::map<std::string, int> netRssi;
+struct ScanRow { uint8_t bssid[6]; int rssi; std::string ssid; };
+std::vector<ScanRow> lastScan;
+void netBssid(size_t index, uint8_t out[6]) { const uint8_t b[6] = {0x24, 0x0a, 0xc4, 0x00, static_cast<uint8_t>(index + 1), 0x10}; memcpy(out, b, 6); }
 
 std::string behaviourNow() {
   emu::HostScope host;
@@ -47,6 +57,19 @@ bool ntpReachable() {
   if (!joined) return false;
   const std::string b = behaviourNow();
   return b.empty() || b == "home" || b == "nonav";
+}
+// ap BSSID RSSI [SSID]: an access point in the air at this signal (0 removes it); a joinable network's
+// SSID as the BSSID sets that network's signal instead (0: out of range for scans).
+bool apSet(const char *bssid, int rssi, const char *ssid) {
+  HostScope host;
+  std::lock_guard<std::mutex> guard(netLock);
+  for (const auto &net : nets) if (net.ssid == bssid) { netRssi[net.ssid] = rssi; return true; }
+  unsigned b[6];
+  if (sscanf(bssid, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]) != 6) return false;
+  AirAp ap; for (int i = 0; i < 6; i++) ap.bssid[i] = static_cast<uint8_t>(b[i]); ap.rssi = rssi; ap.ssid = ssid ? ssid : "";
+  air.erase(std::remove_if(air.begin(), air.end(), [&](const AirAp &a) { return memcmp(a.bssid, ap.bssid, 6) == 0; }), air.end());
+  if (rssi < 0) air.push_back(ap);
+  return true;
 }
 void netClear() {
   HostScope host;
@@ -96,10 +119,18 @@ int WiFiClass::scanNetworks(bool, bool, bool, uint32_t, uint8_t) {
   if (scansRunning.fetch_add(1) > 0) { scansRunning--; return -1; }
   emu::sleepMs(2000);
   scansRunning--;
-  if (!emu::wifiAvailable) return 0;
   emu::HostScope host;
   std::lock_guard<std::mutex> guard(netLock);
-  return nets.size();
+  lastScan.clear();
+  if (!emu::wifiAvailable) return 0;
+  for (size_t i = 0; i < nets.size(); i++) {
+    ScanRow row; netBssid(i, row.bssid); row.ssid = nets[i].ssid;
+    const auto set = netRssi.find(nets[i].ssid);
+    row.rssi = set != netRssi.end() ? set->second : -50 - static_cast<int>(i);
+    if (row.rssi < 0) lastScan.push_back(row);  // 0: out of range
+  }
+  for (const auto &ap : air) { ScanRow row; memcpy(row.bssid, ap.bssid, 6); row.rssi = ap.rssi; row.ssid = ap.ssid; lastScan.push_back(row); }
+  return lastScan.size();
 }
 String WiFiClass::SSID() {
   if (!joined) return String();
@@ -109,11 +140,21 @@ String WiFiClass::SSID() {
 }
 String WiFiClass::SSID(int index) {
   char copy[40] = "";
-  { emu::HostScope host; std::lock_guard<std::mutex> guard(netLock); if (index >= 0 && index < static_cast<int>(nets.size())) snprintf(copy, sizeof(copy), "%s", nets[index].ssid.c_str()); }
+  { emu::HostScope host; std::lock_guard<std::mutex> guard(netLock); if (index >= 0 && index < static_cast<int>(lastScan.size())) snprintf(copy, sizeof(copy), "%s", lastScan[index].ssid.c_str()); }
   return String(copy);
 }
-int32_t WiFiClass::RSSI(int index) { return -50 - index; }
-uint8_t *WiFiClass::BSSID(int) { static uint8_t bssid[6] = {2, 0, 0, 0, 0, 1}; return bssid; }
+int32_t WiFiClass::RSSI(int index) {
+  emu::HostScope host; std::lock_guard<std::mutex> guard(netLock);
+  if (index >= 0 && index < static_cast<int>(lastScan.size())) return lastScan[index].rssi;
+  return -50 - index;  // the joined network (RSSI() with no scan)
+}
+uint8_t *WiFiClass::BSSID(int index) {
+  static uint8_t bssid[6];
+  emu::HostScope host; std::lock_guard<std::mutex> guard(netLock);
+  if (index >= 0 && index < static_cast<int>(lastScan.size())) memcpy(bssid, lastScan[index].bssid, 6);
+  else { const uint8_t none[6] = {2, 0, 0, 0, 0, 1}; memcpy(bssid, none, 6); }
+  return bssid;
+}
 
 // ---- sockets ----
 

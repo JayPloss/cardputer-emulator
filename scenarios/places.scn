@@ -1,0 +1,149 @@
+# v0.68's PLACES and BRIGHTNESS. Places: the device learns where it is from the Wi-Fi access points around
+# it (Ben's place prints, ported). SAVE THIS PLACE names a new place; ADD TO A PLACE names a part of one.
+# Moving between the access points' signals, it recognises the place, the part, and a place it doesn't know.
+# Brightness: five levels by hand, each change logged with the time and the place.
+wait-text "HOME" 60000
+# Inside the house: its own network strong, two neighbours faint.
+ap EMU-LAN -45
+ap 24:0a:c4:00:20:10 -78 Neighbour
+ap 24:0a:c4:00:30:10 -84 Street
+# HOME's last page: SCREEN AGENDA / BRIGHT PLACES.
+press right right right right right right right right
+wait-text "AGENDA" 3000
+expect-text "BRIGHT"
+expect-text "PLACES"
+expect-no-clipping
+shot home-page5.png
+press down
+wait 300
+press right
+wait 300
+press enter
+wait-text "NO PLACES YET" 5000
+expect-text "SAVE THIS PLACE"
+expect-text "ADD TO A PLACE"
+shot places-empty.png
+expect-no-clipping
+# ADD with nothing saved: says so.
+press down
+wait 300
+press enter
+wait-text "SAVE ONE FIRST" 3000
+press up
+wait 300
+press enter
+wait-text "NAME OF THIS PLACE" 3000
+type "Home"
+wait-text "NETWORKS AROUND" 15000
+shot place-name.png
+expect-no-clipping
+press enter
+wait-text "SAVED: Home" 5000
+expect-text "Home"
+# The porch: the house's network weaker, the neighbour across the street stronger, one more only seen outside.
+ap EMU-LAN -68
+ap 24:0a:c4:00:20:10 -60 Neighbour
+ap 24:0a:c4:00:30:10 -80 Street
+ap 24:0a:c4:00:40:10 -74 Porchside
+press down
+wait 300
+press enter
+wait-text "ADD TO" 3000
+expect-text "Home"
+press enter
+wait-text "PART OF Home" 3000
+type "Porch"
+wait-text "NETWORKS AROUND" 15000
+press enter
+wait-text "SAVED: Home / Porch" 5000
+shot places-porch.png
+expect-no-clipping
+# Back inside: PLACES looks again when it opens, and says Home without the porch.
+ap EMU-LAN -46
+ap 24:0a:c4:00:20:10 -79 Neighbour
+ap 24:0a:c4:00:30:10 -85 Street
+ap 24:0a:c4:00:40:10 0
+button
+wait-text "BRIGHT" 3000
+press enter
+wait-text "HERE" 3000
+# The network task scans between its other work: on a sync's heels that can take a while.
+wait 20000
+expect-text "Home"
+expect-no-text "Porch"
+# On the porch again: recognised.
+ap EMU-LAN -69
+ap 24:0a:c4:00:20:10 -59 Neighbour
+ap 24:0a:c4:00:30:10 -81 Street
+ap 24:0a:c4:00:40:10 -73 Porchside
+button
+wait-text "BRIGHT" 3000
+press enter
+wait-text "HERE" 3000
+wait-text "Home / Porch" 25000
+# Brightness on the porch: 5/5 down to 1/5, logged with the place when the screen is left.
+button
+wait-text "BRIGHT" 3000
+press left
+wait 300
+press enter
+wait-text "BRIGHTNESS" 3000
+expect-text "5/5"
+expect-brightness 255 255
+shot brightness.png
+expect-no-clipping
+press left left left left
+wait 500
+expect-text "1/5"
+expect-brightness 20 20
+press left
+wait 300
+expect-text "1/5"
+expect-nvs "bright	0"
+press enter
+wait-text "PLACES" 3000
+# Written when the card is free: a card sync (here against the real music server) can hold it a while.
+wait-file supachat-brightness.csv ",5,1,Home / Porch" 240000
+# Somewhere else: none of the house's access points.
+ap EMU-LAN 0
+ap 24:0a:c4:00:20:10 0
+ap 24:0a:c4:00:30:10 0
+ap 24:0a:c4:00:40:10 0
+ap 24:0a:c4:00:90:10 -55 School
+ap 24:0a:c4:00:a0:10 -70 Library
+press right
+wait 300
+press enter
+wait-text "HERE" 3000
+wait-text "NOT A SAVED PLACE" 25000
+shot places-unknown.png
+expect-no-clipping
+# Delete the porch: the list, DEL, Enter.
+press down
+wait 300
+press enter
+wait-text "ADD TO" 3000
+press down
+wait 300
+press del
+wait-text "DELETE IT?" 3000
+shot place-delete.png
+expect-no-clipping
+press enter
+wait-text "DELETED: Porch" 3000
+# Saved across a restart, and the brightness with it.
+ap EMU-LAN -45
+ap 24:0a:c4:00:20:10 -78 Neighbour
+ap 24:0a:c4:00:30:10 -84 Street
+reboot
+wait-text "HOME" 60000
+expect-brightness 20 20
+press right right right right right right right right
+wait-text "AGENDA" 3000
+press down
+wait 300
+press right
+wait 300
+press enter
+wait-text "HERE" 3000
+wait-text "Home" 25000

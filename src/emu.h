@@ -83,6 +83,8 @@ int peekToneCount();  // without resetting the count
 // (joins, TLS fails at once), nointernet (joins, everything times out), joinfail (never joins).
 void netAdd(const char *ssid, const char *password, const char *behaviour);
 void netClear();
+bool apSet(const char *bssidOrSsid, int rssi, const char *ssid);
+int screenBrightness();  // the backlight, 0..255
 // Card faults, for scenarios: a power cut at a chosen file operation restarts the run from
 // the next scenario line, with the card as it stood. A full card fails every write.
 void armPowerCut(const char *when, const char *what, const char *resumeLine);

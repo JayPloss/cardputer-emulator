@@ -54,23 +54,26 @@ expect-text "CHANGELOG"
 expect-text "SYSTEM"
 expect-no-clipping
 shot page4.png
-# Page 5 is short: SCREEN and AGENDA (v0.66) on its top row. Right from the bottom row lands on it;
-# its empty tiles bump.
+# Page 5: SCREEN and AGENDA (v0.66), BRIGHT and PLACES (v0.68). Right from page 4 lands on it; its right edge bumps.
 press right
 wait 300
 press right
-wait-text "SCREEN" 3000
+wait-text "PLACES" 3000
 expect-text "AGENDA"
+expect-text "BRIGHT"
 expect-no-text "SYSTEM"
 expect-no-clipping
 shot page5.png
 press right
 wait 300
 press right
+wait 300
+press right
 shot bump-right.png
+expect-text "PLACES"
 expect-text "AGENDA"
 wait 400
-press down
+press up
 wait 400
 expect-text "AGENDA"
 press left
@@ -84,7 +87,7 @@ wait 300
 press left
 wait 300
 press enter
-wait-text "v0.67" 3000
+wait-text "v0.68" 3000
 press esc
 wait-text "CHANGELOG" 3000
 press 4

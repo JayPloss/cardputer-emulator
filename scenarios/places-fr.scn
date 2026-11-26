@@ -1,0 +1,58 @@
+# v0.68's PLACES and BRIGHTNESS screens on a French build, offline so no room's language overrides it: labels
+# fit, and a name typed with an accent (Véranda, é on the CSA layout's / key) is kept and shown.
+wifi off
+wait-text "MUSIQUE" 15000
+press 0
+wait 500
+button
+wait 500
+wifi on
+ap EMU-LAN -45
+press right right right right right right right right
+wait-text "AGENDA" 3000
+expect-text "LUMIERE"
+expect-text "LIEUX"
+expect-no-clipping
+shot home-page5-fr.png
+press down
+wait 300
+press enter
+wait-text "LUMINOSITE" 3000
+press left
+wait 300
+expect-text "4/5"
+expect-text "GAUCHE/DROITE REGLER"
+shot brightness-fr.png
+expect-no-clipping
+press enter
+wait 500
+press right
+wait 300
+press enter
+wait-text "AUCUN LIEU" 5000
+expect-text "ENREGISTRER ICI"
+expect-text "AJOUTER A UN LIEU"
+shot places-fr.png
+expect-no-clipping
+press enter
+wait-text "NOM DE CE LIEU" 3000
+type "Maison"
+wait-text "AUTOUR" 15000
+press enter
+wait-text "GARDE: Maison" 5000
+press down
+wait 300
+press enter
+wait 500
+shot place-pick-fr.png
+expect-no-clipping
+press enter
+wait-text "DANS Maison" 3000
+type "V/randa"
+wait-text "AUTOUR" 15000
+shot place-name-fr.png
+expect-no-clipping
+press enter
+wait-text "GARDE: Maison / V" 5000
+shot places-saved-fr.png
+expect-no-clipping

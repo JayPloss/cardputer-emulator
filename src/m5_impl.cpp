@@ -172,6 +172,7 @@ esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return lastCause; }
 namespace emu {
 uint64_t sleptMs() { return asleepMs.load() + (inSleep.load() ? emu::millis() - sleepStartedAt.load() : 0); }  // the sleep in progress counts too
 bool screenOff() { return M5Cardputer.Display.asleep() || M5Cardputer.Display.getBrightness() == 0; }
+int screenBrightness() { return M5Cardputer.Display.getBrightness(); }
 }  // namespace emu
 
 void EmuButton::update() {

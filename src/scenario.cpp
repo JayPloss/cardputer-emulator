@@ -150,6 +150,12 @@ int runScenario() {
       const double seconds = sleptMs() / 1000.0;
       printf("[scenario] %.0f s asleep so far\n", seconds);
       if (seconds < atof(rest.c_str())) return fail("only " + std::to_string(static_cast<int>(seconds)) + " s in light sleep");
+    } else if (command == "expect-brightness") {
+      // expect-brightness min [max]: the backlight's level, 0..255.
+      int least = 0, most = 255;
+      sscanf(rest.c_str(), "%d %d", &least, &most);
+      printf("[scenario] brightness %d\n", screenBrightness());
+      if (screenBrightness() < least || screenBrightness() > most) return fail("brightness is " + std::to_string(screenBrightness()));
     } else if (command == "expect-screen-off") {
       if (!screenOff()) return fail("the screen is on");
     } else if (command == "expect-screen-on") {
@@ -193,6 +199,12 @@ int runScenario() {
       if (count < least || (most >= 0 && count > most)) return fail(std::to_string(count) + " tones played");
     }
     else if (command == "nets-clear") netClear();
+    else if (command == "ap") {
+      // ap BSSID RSSI [SSID]: an access point a scan sees (RSSI 0 removes it). A joinable network's SSID in
+      // place of the BSSID sets that network's signal.
+      char who[64] = "", ssid[64] = ""; int rssi = 0;
+      if (sscanf(rest.c_str(), "%63s %d %63s", who, &rssi, ssid) < 2 || !apSet(who, rssi, ssid[0] ? ssid : nullptr)) return fail("ap wants BSSID-or-SSID RSSI [SSID]");
+    }
     else if (command == "net") {
       std::istringstream parts(rest);
       std::string ssid, password, behaviour;
@@ -268,6 +280,21 @@ int runScenario() {
         deleteCurrentTask();
       }, command.c_str(), 8192, new Load{static_cast<uint32_t>(atoi(rest.c_str())), command == "spin"}, 1, 0);
     } else if (command == "expect-crash") { expectedCrash = strdup(unquote(rest).c_str()); }
+    else if (command == "wait-file") {
+      // wait-file path "text" ms: until the card's file holds the text (a write the firmware defers).
+      const auto quote = rest.find('"'), close = rest.rfind('"');
+      const std::string path = std::string(options.card) + "/" + rest.substr(0, quote - 1);
+      const std::string wanted = rest.substr(quote + 1, close - quote - 1);
+      const uint32_t until = millis() + static_cast<uint32_t>(atol(rest.c_str() + close + 1));
+      for (;;) {
+        std::ifstream target(path);
+        std::stringstream contents;
+        contents << target.rdbuf();
+        if (contents.str().find(wanted) != std::string::npos) break;
+        if (millis() >= until) return fail(path + " never held \"" + wanted + "\"");
+        sleepMs(500);
+      }
+    }
     else if (command == "expect-file") {
       const auto quote = rest.find('"');
       const std::string path = std::string(options.card) + "/" + rest.substr(0, quote - 1);
