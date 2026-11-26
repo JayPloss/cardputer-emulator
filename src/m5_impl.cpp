@@ -272,7 +272,14 @@ void speakerThread() {
         }
       }
     }
-    if (energyCount > 4000) { level = std::sqrt(energy / energyCount); energy = 0; energyCount = 0; }
+    // The loudest 4000-sample window of the last ten (about 2 s of speech): one window between two words
+    // is quiet, and the sound isn't (morning-snooze read a pause as silence, 2026-11-25).
+    if (energyCount > 4000) {
+      static double windows[10] = {0}; static int next = 0;
+      windows[next] = std::sqrt(energy / energyCount); next = (next + 1) % 10;
+      double loudest = 0; for (double w : windows) loudest = std::max(loudest, w);
+      level = loudest; energy = 0; energyCount = 0;
+    }
     if (now - lastFlush > 1000000) { lastFlush = now; finishWav(); }
   }
 }

@@ -60,10 +60,12 @@ wait 300
 press right
 wait-text "ECRAN" 3000
 expect-text "AGENDA"
+expect-text "LUMIERE"
+expect-text "LIEUX"
 expect-no-text "VERSIONS"
 expect-no-clipping
-# Right from the bottom row lands on the short page's last tile, AGENDA (v0.66); ECRAN is left of it.
-press left
+# Right from the bottom row lands on LUMIERE (v0.68 filled the last page); ECRAN is above it.
+press up
 wait 300
 press enter
 wait-text "TEMPS D'ECRAN" 3000
