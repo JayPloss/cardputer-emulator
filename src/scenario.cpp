@@ -90,6 +90,40 @@ int runScenario() {
     const std::string rest = space == std::string::npos ? "" : line.substr(space + 1);
     printf("[scenario] %.1f s: %s\n", millis() / 1000.0, line.c_str());
     if (command == "wait") sleepMs(atoi(rest.c_str()));
+    else if (command == "open") {
+      // open NAME: from HOME, opens the app whose tile says NAME, on whatever page it is: it walks the pages
+      // with the arrows, reading the tiles off the screen, and presses the tile's number key (1-4 on its
+      // page). Scenarios name the app instead of counting arrow presses, so a new tile breaks none of them.
+      const std::string name = unquote(rest);
+      auto slotOf = [&](const std::string &screen) {
+        std::vector<std::string> lines; std::istringstream in(screen); std::string line;
+        while (std::getline(in, line)) lines.push_back(line);
+        if (lines.empty() || lines[0].rfind("HOME", 0) != 0) return -2;  // not on HOME
+        for (int row = 1; row <= 2 && row < static_cast<int>(lines.size()); row++) {
+          const std::string &l = lines[row];
+          if (l == name || l.rfind(name + " ", 0) == 0) return row == 1 ? 1 : 3;
+          if (l.size() > name.size() && l.compare(l.size() - name.size(), name.size(), name) == 0 && l[l.size() - name.size() - 1] == ' ') return row == 1 ? 2 : 4;
+        }
+        return -1;
+      };
+      int slot = slotOf(shown());
+      if (slot == -2) return fail("open needs HOME on the screen");
+      for (const char *direction : {"right", "left"}) {
+        std::string before;
+        for (int step = 0; slot < 0 && step < 24; step++) {
+          pressKey(namedKeys().at(direction)); sleepMs(300);
+          const std::string now = shown();
+          slot = slotOf(now);
+          if (now == before && step % 2 == 1) break;  // two presses and nothing changed: the end
+          if (step % 2 == 1) before = now;
+        }
+        if (slot >= 0) break;
+      }
+      if (slot < 0) return fail("no HOME tile says " + name);
+      Key key;
+      findCharacter(static_cast<char>('0' + slot), key);
+      pressKey(key); sleepMs(300);
+    }
     else if (command == "press") {
       std::istringstream parts(rest);
       std::string name;

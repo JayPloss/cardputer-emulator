@@ -84,18 +84,7 @@ press left
 wait 500
 press enter
 wait-text "LANGUE" 3000
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-# v0.68 filled HOME's last page: the bottom row lands on LUMIERE; AGENDA is above and right of it.
-press up
-wait 300
-press right
-wait 300
-press enter
+open AGENDA
 wait-text "GAUCHE BONJOUR" 3000
 expect-text "08:15 Natation"
 expect-text "MERCREDI 25 NOV"

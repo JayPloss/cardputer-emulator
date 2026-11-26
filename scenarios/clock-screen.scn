@@ -1,23 +1,7 @@
 # time-scale 20
 # Screen time: 15 minutes, counting while chat is open; warnings at 5 and 1 minutes, then the alert.
 wait-text "HOME" 60000
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-press right
-wait 300
-press right
-wait-text "SCREEN" 3000
-press enter
+open SCREEN
 wait-text "30 MIN" 3000
 expect-no-clipping
 shot screen-idle.png

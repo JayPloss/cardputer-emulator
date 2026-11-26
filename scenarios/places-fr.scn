@@ -8,15 +8,7 @@ button
 wait 500
 wifi on
 ap EMU-LAN -45
-press right right right right right right right right
-wait-text "AGENDA" 3000
-expect-text "LUMIERE"
-expect-text "LIEUX"
-expect-no-clipping
-shot home-page5-fr.png
-press down
-wait 300
-press enter
+open LUMIERE
 wait-text "LUMINOSITE" 3000
 press left
 wait 300
@@ -25,10 +17,8 @@ expect-text "GAUCHE/DROITE REGLER"
 shot brightness-fr.png
 expect-no-clipping
 press enter
-wait 500
-press right
-wait 300
-press enter
+wait-text "LIEUX" 3000
+open LIEUX
 wait-text "AUCUN LIEU" 5000
 expect-text "ENREGISTRER ICI"
 expect-text "AJOUTER A UN LIEU"

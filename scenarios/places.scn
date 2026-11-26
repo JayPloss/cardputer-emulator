@@ -7,18 +7,7 @@ wait-text "HOME" 60000
 ap EMU-LAN -45
 ap 24:0a:c4:00:20:10 -78 Neighbour
 ap 24:0a:c4:00:30:10 -84 Street
-# HOME's last page: SCREEN AGENDA / BRIGHT PLACES.
-press right right right right right right right right
-wait-text "AGENDA" 3000
-expect-text "BRIGHT"
-expect-text "PLACES"
-expect-no-clipping
-shot home-page5.png
-press down
-wait 300
-press right
-wait 300
-press enter
+open PLACES
 wait-text "NO PLACES YET" 5000
 expect-text "SAVE THIS PLACE"
 expect-text "ADD TO A PLACE"
@@ -65,7 +54,7 @@ ap 24:0a:c4:00:30:10 -85 Street
 ap 24:0a:c4:00:40:10 0
 button
 wait-text "BRIGHT" 3000
-press enter
+open PLACES
 wait-text "HERE" 3000
 # The network task scans between its other work: on a sync's heels that can take a while.
 wait 20000
@@ -78,15 +67,13 @@ ap 24:0a:c4:00:30:10 -81 Street
 ap 24:0a:c4:00:40:10 -73 Porchside
 button
 wait-text "BRIGHT" 3000
-press enter
+open PLACES
 wait-text "HERE" 3000
 wait-text "Home / Porch" 25000
 # Brightness on the porch: 5/5 down to 1/5, logged with the place when the screen is left.
 button
 wait-text "BRIGHT" 3000
-press left
-wait 300
-press enter
+open BRIGHT
 wait-text "BRIGHTNESS" 3000
 expect-text "5/5"
 expect-brightness 255 255
@@ -111,9 +98,7 @@ ap 24:0a:c4:00:30:10 0
 ap 24:0a:c4:00:40:10 0
 ap 24:0a:c4:00:90:10 -55 School
 ap 24:0a:c4:00:a0:10 -70 Library
-press right
-wait 300
-press enter
+open PLACES
 wait-text "HERE" 3000
 wait-text "NOT A SAVED PLACE" 25000
 shot places-unknown.png
@@ -138,12 +123,6 @@ ap 24:0a:c4:00:30:10 -84 Street
 reboot
 wait-text "HOME" 60000
 expect-brightness 20 20
-press right right right right right right right right
-wait-text "AGENDA" 3000
-press down
-wait 300
-press right
-wait 300
-press enter
+open PLACES
 wait-text "HERE" 3000
 wait-text "Home" 25000
